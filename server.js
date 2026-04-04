@@ -27,6 +27,14 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function redirectAuthorizedUserToProfile(req, res, next) {
+  if (req.session?.user) {
+    return res.redirect("/lk");
+  }
+
+  next();
+}
+
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
@@ -55,11 +63,11 @@ app.get("/", (req, res) => {
   res.sendFile(`${__dirname}/main.html`);
 });
 
-app.get("/auth/login", (req, res) => {
+app.get("/auth/login", redirectAuthorizedUserToProfile, (req, res) => {
   res.sendFile(`${__dirname}/main.html`);
 });
 
-app.get("/auth/register", (req, res) => {
+app.get("/auth/register", redirectAuthorizedUserToProfile, (req, res) => {
   res.sendFile(`${__dirname}/main.html`);
 });
 

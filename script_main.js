@@ -412,7 +412,7 @@
           return;
         }
 
-        setRoute("main", { edit: null }, true);
+        setRoute("lk", {}, true);
       } catch (err) {
         alert(`Ошибка: ${err.message}`);
       }
@@ -443,7 +443,7 @@
           return;
         }
 
-        setRoute("main", { edit: null }, true);
+        setRoute("lk", {}, true);
       } catch (err) {
         alert(`Ошибка: ${err.message}`);
       }

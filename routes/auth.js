@@ -1,4 +1,4 @@
-const express = require("express");
+п»їconst express = require("express");
 const bcrypt = require("bcrypt");
 
 function createHttpError(status, message) {
@@ -37,16 +37,16 @@ module.exports = ({ db, isValidEmail }) => {
     const password = req.body.password;
     const phone = req.body.phone?.trim();
 
-    if (!login) throw createHttpError(400, "login обязателен");
-    if (!email) throw createHttpError(400, "email обязателен");
-    if (!password) throw createHttpError(400, "password обязателен");
-    if (!phone) throw createHttpError(400, "phone обязателен");
-    if (!isValidEmail(email)) throw createHttpError(400, "Некорректный email");
-    if (password.length < 6) throw createHttpError(400, "Пароль должен быть не менее 6 символов");
-    if (login.length < 3) throw createHttpError(400, "Логин должен быть не короче 3 символов");
-    if (phone.includes("+")) throw createHttpError(400, "Укажите номер телефона без +");
-    if (!/^\d+$/.test(phone)) throw createHttpError(400, "Номер телефона должен содержать только цифры");
-    if (phone.length !== 12) throw createHttpError(400, "Номер телефона указан неверно");
+    if (!login) throw createHttpError(400, "Р›РѕРіРёРЅ РѕР±СЏР·Р°С‚РµР»РµРЅ");
+    if (!email) throw createHttpError(400, "Email РѕР±СЏР·Р°С‚РµР»РµРЅ");
+    if (!password) throw createHttpError(400, "РџР°СЂРѕР»СЊ РѕР±СЏР·Р°С‚РµР»РµРЅ");
+    if (!phone) throw createHttpError(400, "РўРµР»РµС„РѕРЅ РѕР±СЏР·Р°С‚РµР»РµРЅ");
+    if (!isValidEmail(email)) throw createHttpError(400, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ email");
+    if (password.length < 6) throw createHttpError(400, "РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РјРµРЅРµРµ 6 СЃРёРјРІРѕР»РѕРІ");
+    if (login.length < 3) throw createHttpError(400, "Р›РѕРіРёРЅ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РєРѕСЂРѕС‡Рµ 3 СЃРёРјРІРѕР»РѕРІ");
+    if (phone.includes("+")) throw createHttpError(400, "РЈРєР°Р¶РёС‚Рµ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° Р±РµР· +");
+    if (!/^\d+$/.test(phone)) throw createHttpError(400, "РќРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ С‚РѕР»СЊРєРѕ С†РёС„СЂС‹");
+    if (phone.length !== 12) throw createHttpError(400, "РќРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° СѓРєР°Р·Р°РЅ РЅРµРІРµСЂРЅРѕ");
 
     const [existingUsers] = await dbPromise.query(
       "SELECT id, login, email, phone FROM users WHERE login = ? OR email = ? OR phone = ?",
@@ -56,9 +56,9 @@ module.exports = ({ db, isValidEmail }) => {
     if (existingUsers.length > 0) {
       const duplicate = existingUsers[0];
 
-      if (duplicate.login === login) throw createHttpError(400, "Такой логин уже существует");
-      if (duplicate.email === email) throw createHttpError(400, "Пользователь с таким email уже существует");
-      if (duplicate.phone === phone) throw createHttpError(400, "Этот номер телефона уже зарегистрирован");
+      if (duplicate.login === login) throw createHttpError(400, "РўР°РєРѕР№ Р»РѕРіРёРЅ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
+      if (duplicate.email === email) throw createHttpError(400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
+      if (duplicate.phone === phone) throw createHttpError(400, "Р­С‚РѕС‚ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -85,8 +85,8 @@ module.exports = ({ db, isValidEmail }) => {
     const credential = req.body.credential?.trim() || req.body.login?.trim() || req.body.email?.trim();
     const password = req.body.password;
 
-    if (!credential) throw createHttpError(400, "login или email обязателен");
-    if (!password) throw createHttpError(400, "password обязателен");
+    if (!credential) throw createHttpError(400, "Р›РѕРіРёРЅ РёР»Рё email РѕР±СЏР·Р°С‚РµР»РµРЅ");
+    if (!password) throw createHttpError(400, "РџР°СЂРѕР»СЊ РѕР±СЏР·Р°С‚РµР»РµРЅ");
 
     const [rows] = await dbPromise.query(
       "SELECT id, login, email, password, phone, role FROM users WHERE login = ? OR email = ?",
@@ -94,14 +94,14 @@ module.exports = ({ db, isValidEmail }) => {
     );
 
     if (rows.length === 0) {
-      throw createHttpError(400, "Пользователь не найден");
+      throw createHttpError(400, "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ");
     }
 
     const user = rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      throw createHttpError(400, "Неверный пароль");
+      throw createHttpError(400, "РќРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ");
     }
 
     const normalizedUser = normalizeUser(user);
@@ -113,7 +113,7 @@ module.exports = ({ db, isValidEmail }) => {
 
   function getCurrentUser(req) {
     if (!req.session.user) {
-      throw createHttpError(401, "Не авторизован");
+      throw createHttpError(401, "РќРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ");
     }
 
     return req.session.user;
@@ -126,7 +126,7 @@ module.exports = ({ db, isValidEmail }) => {
 
     req.session.destroy((error) => {
       if (error) {
-        return res.status(500).json({ ok: false, error: "Logout failed" });
+        return res.status(500).json({ ok: false, error: "РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹Р№С‚Рё РёР· Р°РєРєР°СѓРЅС‚Р°" });
       }
 
       res.clearCookie("connect.sid");
@@ -141,7 +141,7 @@ module.exports = ({ db, isValidEmail }) => {
         res.json({ ok: true, user });
       } catch (error) {
         console.error(error);
-        res.status(error.status || 500).json({ ok: false, error: error.message || "Ошибка сервера" });
+        res.status(error.status || 500).json({ ok: false, error: error.message || "РћС€РёР±РєР° СЃРµСЂРІРµСЂР°" });
       }
     };
   }
@@ -153,7 +153,7 @@ module.exports = ({ db, isValidEmail }) => {
         res.json({ ok: true, redirect: "/" });
       } catch (error) {
         console.error(error);
-        res.status(error.status || 500).json({ ok: false, error: error.message || "Ошибка сервера" });
+        res.status(error.status || 500).json({ ok: false, error: error.message || "РћС€РёР±РєР° СЃРµСЂРІРµСЂР°" });
       }
     };
   }
@@ -164,7 +164,7 @@ module.exports = ({ db, isValidEmail }) => {
     try {
       res.json({ ok: true, user: getCurrentUser(req) });
     } catch (error) {
-      res.status(error.status || 500).json({ ok: false, error: error.message || "Ошибка сервера" });
+      res.status(error.status || 500).json({ ok: false, error: error.message || "РћС€РёР±РєР° СЃРµСЂРІРµСЂР°" });
     }
   });
   apiRouter.post("/logout", logoutUser);
