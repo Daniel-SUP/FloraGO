@@ -4,6 +4,7 @@ const mysql = require("mysql2");
 const session = require("express-session");
 const createAuthRoutes = require("./routes/auth");
 const createProductRoutes = require("./routes/products");
+const createUserRoutes = require("./routes/users");
 
 const app = express();
 const port = 3000;
@@ -56,6 +57,10 @@ for (const { path, router } of createAuthRoutes({ db, isValidEmail })) {
 }
 
 for (const { path, router } of createProductRoutes({ db })) {
+  app.use(path, router);
+}
+
+for (const { path, router } of createUserRoutes({ db, isValidEmail })) {
   app.use(path, router);
 }
 
