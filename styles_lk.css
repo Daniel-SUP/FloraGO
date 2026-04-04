@@ -1,16 +1,17 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f3f3f3;
+﻿body {
+  min-height: 100vh;
+  padding: 24px;
 }
 
 .lk_container {
-  width: 500px;
-  margin: 40px auto;
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  width: min(94vw, 700px);
+  margin: 26px auto;
+  padding: 26px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
 }
 
 .lk_header {
@@ -18,18 +19,23 @@ body {
   margin-bottom: 20px;
 }
 
+.lk_header h1 {
+  margin: 0;
+  font-size: clamp(28px, 4.3vw, 38px);
+}
+
 .lk_profile {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
 }
 
 .lk_avatar {
-  width: 120px;
-  height: 120px;
+  width: 128px;
+  height: 128px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #ddd;
+  border: 3px solid var(--accent-ghost);
 }
 
 .lk_info {
@@ -38,48 +44,67 @@ body {
 
 .lk_row {
   margin-bottom: 10px;
+  color: var(--text-muted);
+}
+
+.lk_row b {
+  color: var(--text-main);
 }
 
 .lk_buttons {
-  margin-top: 25px;
+  margin-top: 24px;
   display: flex;
   justify-content: center;
-  align-items: center;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-/* Кнопка */
-button {
-  width: 30%;
-  padding: 10px;
-  background: #ccc;
-  color: rgb(0, 0, 0);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 15px;
-  margin: 10px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.1);
-}
-button:hover {
-  background: #d6d6d6;
-  transform: scale(1.03);
-  transition: 0.2s;
+.return {
+  width: 52px;
+  height: 52px;
+  padding: 0;
 }
 
-.logout {
-  background: #d63a3a !important;
-}
-
-.logout:hover {
-  background: #b82f2f !important;
+.lk_buttons button {
+  min-width: 210px;
 }
 
 .edit_input {
-  font-size: 18px;
-  padding: 4px 6px;
-  border: 1px solid #aaa;
-  border-radius: 4px;
-  width: 150px;
+  width: 180px;
+  padding: 7px 8px;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 12px;
+  }
+
+  .lk_container {
+    padding: 18px;
+    margin-top: 10px;
+  }
+
+  .lk_profile {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lk_avatar {
+    width: 104px;
+    height: 104px;
+  }
+
+  .lk_info {
+    font-size: 16px;
+  }
+
+  .lk_buttons {
+    justify-content: stretch;
+  }
+
+  .lk_buttons button {
+    width: 100%;
+    min-width: 0;
+  }
 }

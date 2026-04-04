@@ -38,7 +38,7 @@
           <div class="modal_buttons">
             <button class="modal_btn add_cart">Добавить в корзину</button>
             <button class="modal_btn buy_now">Купить</button>
-            <button class="modal_btn edit_product" style="background:#3a55d6;">Редактировать</button>
+            <button class="modal_btn edit_product">Редактировать</button>
           </div>
         </div>
       </div>
@@ -76,7 +76,7 @@
     `,
     lk: `
       <div class="lk_container">
-        <button id="return" class="return" style="width: 10%">⬅</button>
+        <button id="return" class="return">⬅</button>
 
         <div class="lk_header">
           <h1>Личный кабинет</h1>
@@ -100,7 +100,7 @@
     `,
     admin: `
       <div class="admin_container">
-        <button id="return" class="return" style="width: 10%">⬅</button>
+        <button id="return" class="return">⬅</button>
         <h2>Добавить товар</h2>
 
         <input type="text" id="title" placeholder="Название товара" />
@@ -108,7 +108,7 @@
         <input type="text" id="image" placeholder="URL изображения" />
 
         <button id="addProductBtn">Добавить товар</button>
-        <button id="deleteProductBtn" style="background: #d63a3a; display: none;">Удалить товар</button>
+        <button id="deleteProductBtn">Удалить товар</button>
       </div>
     `
   };
