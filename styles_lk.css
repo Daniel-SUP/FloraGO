@@ -1,0 +1,85 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f3f3;
+}
+
+.lk_container {
+  width: 500px;
+  margin: 40px auto;
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.lk_header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.lk_profile {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.lk_avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ddd;
+}
+
+.lk_info {
+  font-size: 18px;
+}
+
+.lk_row {
+  margin-bottom: 10px;
+}
+
+.lk_buttons {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Кнопка */
+button {
+  width: 30%;
+  padding: 10px;
+  background: #ccc;
+  color: rgb(0, 0, 0);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  margin: 10px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+button:hover {
+  background: #d6d6d6;
+  transform: scale(1.03);
+  transition: 0.2s;
+}
+
+.logout {
+  background: #d63a3a !important;
+}
+
+.logout:hover {
+  background: #b82f2f !important;
+}
+
+.edit_input {
+  font-size: 18px;
+  padding: 4px 6px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  width: 150px;
+}
