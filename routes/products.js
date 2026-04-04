@@ -13,7 +13,7 @@ module.exports = ({ db }) => {
   const legacyRouter = express.Router();
   const dbPromise = db.promise();
 
-  function normalizeItem(row) {
+  function normalizeProduct(row) {
     return {
       id: row.id,
       title: row.title,
@@ -24,12 +24,12 @@ module.exports = ({ db }) => {
     };
   }
 
-  function parseItemId(rawId) {
-    const itemId = Number(rawId);
-    return Number.isInteger(itemId) && itemId > 0 ? itemId : null;
+  function parseProductId(rawId) {
+    const productId = Number(rawId);
+    return Number.isInteger(productId) && productId > 0 ? productId : null;
   }
 
-  function validateItemPayload(body) {
+  function validateProductPayload(body) {
     const title = body.title?.trim();
     const image = body.image?.trim();
     const price = Number(body.price);
@@ -48,13 +48,13 @@ module.exports = ({ db }) => {
   async function listProducts(req, res) {
     try {
       const [rows] = await dbPromise.query("SELECT * FROM products");
-      const items = rows.map(normalizeItem);
+      const products = rows.map(normalizeProduct);
 
       if (req.baseUrl === "") {
-        return res.json(items);
+        return res.json(products);
       }
 
-      res.json({ ok: true, items });
+      res.json({ ok: true, products });
     } catch (error) {
       console.error("Ошибка получения товаров:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -62,25 +62,25 @@ module.exports = ({ db }) => {
   }
 
   async function getProduct(req, res) {
-    const itemId = parseItemId(req.params.id);
+    const productId = parseProductId(req.params.id);
 
-    if (!itemId) {
+    if (!productId) {
       return res.status(400).json({ ok: false, error: "Некорректный id товара" });
     }
 
     try {
-      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [itemId]);
+      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [productId]);
       if (rows.length === 0) {
         return res.status(404).json({ ok: false, error: "Товар не найден" });
       }
 
-      const item = normalizeItem(rows[0]);
+      const product = normalizeProduct(rows[0]);
 
       if (req.baseUrl === "") {
-        return res.json(item);
+        return res.json(product);
       }
 
-      res.json({ ok: true, item });
+      res.json({ ok: true, product });
     } catch (error) {
       console.error("Ошибка получения товара:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -88,7 +88,7 @@ module.exports = ({ db }) => {
   }
 
   async function createProduct(req, res) {
-    const validation = validateItemPayload(req.body);
+    const validation = validateProductPayload(req.body);
     if (!validation.ok) {
       return res.status(400).json({ ok: false, error: validation.error });
     }
@@ -102,13 +102,13 @@ module.exports = ({ db }) => {
       );
 
       const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [result.insertId]);
-      const item = normalizeItem(rows[0]);
+      const product = normalizeProduct(rows[0]);
 
       if (req.baseUrl === "") {
         return res.json({ ok: true, id: result.insertId });
       }
 
-      res.status(201).json({ ok: true, item });
+      res.status(201).json({ ok: true, product });
     } catch (error) {
       console.error("Ошибка добавления товара:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -116,12 +116,12 @@ module.exports = ({ db }) => {
   }
 
   async function updateProduct(req, res) {
-    const itemId = parseItemId(req.params.id);
-    if (!itemId) {
+    const productId = parseProductId(req.params.id);
+    if (!productId) {
       return res.status(400).json({ ok: false, error: "Некорректный id товара" });
     }
 
-    const validation = validateItemPayload(req.body);
+    const validation = validateProductPayload(req.body);
     if (!validation.ok) {
       return res.status(400).json({ ok: false, error: validation.error });
     }
@@ -131,21 +131,21 @@ module.exports = ({ db }) => {
     try {
       const [result] = await dbPromise.query(
         "UPDATE products SET title = ?, price = ?, image = ? WHERE id = ?",
-        [title, price, image, itemId]
+        [title, price, image, productId]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({ ok: false, error: "Товар не найден" });
       }
 
-      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [itemId]);
-      const item = normalizeItem(rows[0]);
+      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [productId]);
+      const product = normalizeProduct(rows[0]);
 
       if (req.baseUrl === "") {
         return res.json({ ok: true });
       }
 
-      res.json({ ok: true, item });
+      res.json({ ok: true, product });
     } catch (error) {
       console.error("Ошибка обновления товара:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -153,13 +153,13 @@ module.exports = ({ db }) => {
   }
 
   async function deleteProduct(req, res) {
-    const itemId = parseItemId(req.params.id);
-    if (!itemId) {
+    const productId = parseProductId(req.params.id);
+    if (!productId) {
       return res.status(400).json({ ok: false, error: "Некорректный id товара" });
     }
 
     try {
-      const [result] = await dbPromise.query("DELETE FROM products WHERE id = ?", [itemId]);
+      const [result] = await dbPromise.query("DELETE FROM products WHERE id = ?", [productId]);
 
       if (result.affectedRows === 0) {
         return res.status(404).json({ ok: false, error: "Товар не найден" });
@@ -185,7 +185,6 @@ module.exports = ({ db }) => {
   legacyRouter.delete("/products/:id", requireAdmin, deleteProduct);
 
   return [
-    { path: "/api/items", router: apiRouter },
     { path: "/api/products", router: apiRouter },
     { path: "", router: legacyRouter }
   ];
