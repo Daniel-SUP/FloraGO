@@ -105,14 +105,42 @@
     admin: `
       <div class="admin_container">
         <button id="return" class="return">⬅</button>
-        <h2>Добавить товар</h2>
+        <h2>Админ-панель</h2>
 
-        <input type="text" id="title" placeholder="Название товара" />
-        <input type="number" id="price" placeholder="Цена" />
-        <input type="text" id="image" placeholder="URL изображения" />
+        <div class="admin_sections">
+          <section class="admin_section">
+            <h3>Управление товарами</h3>
 
-        <button id="addProductBtn">Добавить товар</button>
-        <button id="deleteProductBtn">Удалить товар</button>
+            <input type="text" id="title" placeholder="Название товара" />
+            <input type="number" id="price" placeholder="Цена" />
+            <input type="text" id="image" placeholder="URL изображения" />
+
+            <button id="addProductBtn">Добавить товар</button>
+            <button id="deleteProductBtn">Удалить товар</button>
+          </section>
+
+          <section class="admin_section">
+            <div class="admin_section_header">
+              <h3>Управление пользователями</h3>
+              <button id="refreshUsersBtn" type="button" class="secondary_btn">Обновить список</button>
+            </div>
+
+            <div id="usersList" class="users_list"></div>
+
+            <input type="text" id="user_login" placeholder="Логин" />
+            <input type="email" id="user_email" placeholder="Email" />
+            <input type="text" id="user_phone" placeholder="Телефон без +" />
+            <select id="user_role">
+              <option value="user">user</option>
+              <option value="admin">admin</option>
+            </select>
+            <input type="password" id="user_password" placeholder="Новый пароль или пароль для создания" />
+
+            <button id="saveUserBtn" type="button">Создать пользователя</button>
+            <button id="deleteUserBtn" type="button">Удалить пользователя</button>
+            <button id="resetUserFormBtn" type="button" class="secondary_btn">Сбросить форму</button>
+          </section>
+        </div>
       </div>
     `
   };
@@ -560,11 +588,95 @@
     const btn = document.getElementById("addProductBtn");
     const deleteBtn = document.getElementById("deleteProductBtn");
     const returnBtn = document.getElementById("return");
+    const usersList = document.getElementById("usersList");
+    const refreshUsersBtn = document.getElementById("refreshUsersBtn");
+    const saveUserBtn = document.getElementById("saveUserBtn");
+    const deleteUserBtn = document.getElementById("deleteUserBtn");
+    const resetUserFormBtn = document.getElementById("resetUserFormBtn");
+    const userLoginInput = document.getElementById("user_login");
+    const userEmailInput = document.getElementById("user_email");
+    const userPhoneInput = document.getElementById("user_phone");
+    const userRoleInput = document.getElementById("user_role");
+    const userPasswordInput = document.getElementById("user_password");
     let editId = route.edit;
+    let selectedUserId = null;
 
     returnBtn.addEventListener("click", () => {
       setRoute("main", { edit: null });
     });
+
+    function resetUserForm() {
+      selectedUserId = null;
+      userLoginInput.value = "";
+      userEmailInput.value = "";
+      userPhoneInput.value = "";
+      userRoleInput.value = "user";
+      userPasswordInput.value = "";
+      saveUserBtn.textContent = "Создать пользователя";
+      deleteUserBtn.style.display = "none";
+
+      usersList.querySelectorAll(".user_card").forEach((card) => {
+        card.classList.remove("active");
+      });
+    }
+
+    function fillUserForm(user) {
+      selectedUserId = user.id;
+      userLoginInput.value = user.login;
+      userEmailInput.value = user.email;
+      userPhoneInput.value = user.phone;
+      userRoleInput.value = user.role;
+      userPasswordInput.value = "";
+      saveUserBtn.textContent = "Сохранить пользователя";
+      deleteUserBtn.style.display = "block";
+    }
+
+    async function loadUsers() {
+      usersList.innerHTML = "<p>Загрузка пользователей...</p>";
+
+      try {
+        const res = await fetch("/api/users", { credentials: "include" });
+        const result = await res.json();
+
+        if (!res.ok || !result.ok) {
+          usersList.innerHTML = `<p>${result.error || "Не удалось загрузить пользователей"}</p>`;
+          return;
+        }
+
+        if (result.users.length === 0) {
+          usersList.innerHTML = "<p>Пользователей пока нет.</p>";
+          return;
+        }
+
+        usersList.innerHTML = "";
+
+        result.users.forEach((user) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "user_card";
+          card.innerHTML = `
+            <b>${user.login}</b>
+            <span>${user.email}</span>
+            <span>+${user.phone}</span>
+            <span class="user_role_badge">${user.role}</span>
+          `;
+
+          if (selectedUserId === user.id) {
+            card.classList.add("active");
+          }
+
+          card.addEventListener("click", () => {
+            usersList.querySelectorAll(".user_card").forEach((item) => item.classList.remove("active"));
+            card.classList.add("active");
+            fillUserForm(user);
+          });
+
+          usersList.appendChild(card);
+        });
+      } catch (error) {
+        usersList.innerHTML = `<p>Ошибка: ${error.message}</p>`;
+      }
+    }
 
     async function loadProductForEdit(id) {
       const res = await fetch(`/products/${id}`);
@@ -652,6 +764,78 @@
       alert("Товар удален");
       setRoute("admin", { edit: null }, true);
     });
+
+    refreshUsersBtn.addEventListener("click", async () => {
+      await loadUsers();
+    });
+
+    resetUserFormBtn.addEventListener("click", () => {
+      resetUserForm();
+    });
+
+    saveUserBtn.addEventListener("click", async () => {
+      const payload = {
+        login: userLoginInput.value.trim(),
+        email: userEmailInput.value.trim(),
+        phone: userPhoneInput.value.trim(),
+        role: userRoleInput.value,
+        password: userPasswordInput.value.trim()
+      };
+
+      if (!selectedUserId && !payload.password) {
+        alert("Для создания пользователя нужен пароль");
+        return;
+      }
+
+      const method = selectedUserId ? "PUT" : "POST";
+      const endpoint = selectedUserId ? `/api/users/${selectedUserId}` : "/api/users";
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        alert(result.error || "Не удалось сохранить пользователя");
+        return;
+      }
+
+      alert(selectedUserId ? "Пользователь обновлен" : "Пользователь создан");
+      if (result.user) {
+        fillUserForm(result.user);
+      } else {
+        resetUserForm();
+      }
+      await loadUsers();
+    });
+
+    deleteUserBtn.addEventListener("click", async () => {
+      if (!selectedUserId) return;
+
+      const ok = confirm("Удалить выбранного пользователя?");
+      if (!ok) return;
+
+      const res = await fetch(`/api/users/${selectedUserId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        alert(result.error || "Не удалось удалить пользователя");
+        return;
+      }
+
+      alert("Пользователь удален");
+      resetUserForm();
+      await loadUsers();
+    });
+
+    resetUserForm();
+    await loadUsers();
   }
 
   async function render() {

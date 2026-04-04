@@ -20,7 +20,37 @@
   font-size: clamp(28px, 4.2vw, 36px);
 }
 
+.admin_sections {
+  display: grid;
+  gap: 20px;
+}
+
+.admin_section {
+  padding: 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.admin_section h3 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.admin_section_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .admin_container input {
+  margin: 10px 0;
+}
+
+.admin_container select {
+  width: 100%;
   margin: 10px 0;
 }
 
@@ -40,6 +70,69 @@
   display: none;
 }
 
+#deleteUserBtn {
+  display: none;
+}
+
+.secondary_btn {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.users_list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.user_card {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  margin-top: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.75);
+  display: grid;
+  gap: 4px;
+  color: var(--text-main);
+  box-shadow: none;
+  filter: none;
+}
+
+.user_card:hover {
+  transform: none;
+  box-shadow: 0 10px 22px rgba(88, 64, 112, 0.08);
+  filter: none;
+}
+
+.user_card b {
+  color: var(--text-main);
+}
+
+.user_card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(120, 168, 120, 0.18);
+}
+
+.user_card span {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.user_role_badge {
+  display: inline-block;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(120, 168, 120, 0.16);
+  color: var(--text-main) !important;
+}
+
 @media (max-width: 768px) {
   body {
     padding: 12px;
@@ -48,5 +141,10 @@
   .admin_container {
     margin-top: 10px;
     padding: 18px;
+  }
+
+  .admin_section_header {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const bcrypt = require("bcrypt");
 
 function requireAdmin(req, res, next) {
@@ -63,7 +63,7 @@ module.exports = ({ db, isValidEmail }) => {
       return null;
     }
 
-    let query = `SELECT id, login, email, phone FROM users WHERE ${conditions.join(" OR ")}`;
+    let query = `SELECT id, login, email, phone FROM users WHERE (${conditions.join(" OR ")})`;
 
     if (excludeId) {
       query += " AND id != ?";
