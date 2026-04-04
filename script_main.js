@@ -126,26 +126,69 @@
 
   function getRoute() {
     const params = new URLSearchParams(window.location.search);
-    const requestedView = params.get("view") || "main";
-    const view = allowedViews.has(requestedView) ? requestedView : "main";
+    const pathname = window.location.pathname;
     const edit = params.get("edit");
 
-    return { view, edit };
+    if (pathname === "/auth/register") {
+      return { view: "login", mode: "register", edit: null };
+    }
+
+    if (pathname === "/auth/login") {
+      return { view: "login", mode: "login", edit: null };
+    }
+
+    if (pathname === "/lk") {
+      return { view: "lk", mode: null, edit: null };
+    }
+
+    if (pathname === "/admin") {
+      return { view: "admin", mode: null, edit };
+    }
+
+    const requestedView = params.get("view") || "main";
+    const view = allowedViews.has(requestedView) ? requestedView : "main";
+    const mode = params.get("mode");
+
+    return { view, mode, edit };
   }
 
-  function setRoute(view, extraParams = {}, replace = false) {
-    const params = new URLSearchParams(window.location.search);
-    params.set("view", view);
+  function buildUrl(view, extraParams = {}) {
+    const params = new URLSearchParams();
 
+    if (view === "main") {
+      return "/";
+    }
+
+    if (view === "login") {
+      return extraParams.mode === "register" ? "/auth/register" : "/auth/login";
+    }
+
+    if (view === "lk") {
+      return "/lk";
+    }
+
+    if (view === "admin") {
+      if (extraParams.edit) {
+        params.set("edit", String(extraParams.edit));
+      }
+
+      const query = params.toString();
+      return query ? `/admin?${query}` : "/admin";
+    }
+
+    params.set("view", view);
     Object.entries(extraParams).forEach(([key, value]) => {
-      if (value === null || value === undefined || value === "") {
-        params.delete(key);
-      } else {
+      if (value !== null && value !== undefined && value !== "") {
         params.set(key, String(value));
       }
     });
 
-    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    return `/?${params.toString()}`;
+  }
+
+  function setRoute(view, extraParams = {}, replace = false) {
+    const nextUrl = buildUrl(view, extraParams);
+
     if (replace) {
       window.history.replaceState({}, "", nextUrl);
     } else {
@@ -188,9 +231,19 @@
   }
 
   async function fetchUserInfo() {
-    const res = await fetch("/check_user_info", { credentials: "include" });
-    if (!res.ok) return { username: null };
-    return res.json();
+    const res = await fetch("/api/auth/me", { credentials: "include" });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok || !data.user) {
+      return { username: null };
+    }
+
+    return {
+      username: data.user.login,
+      email: data.user.email,
+      phone: data.user.phone,
+      role: data.user.role
+    };
   }
 
   async function initMainView() {
@@ -306,20 +359,34 @@
     await loadProducts();
   }
 
-  async function initLoginView() {
+  async function initLoginView(route) {
     const loginForm = document.getElementById("login_form");
     const regForm = document.getElementById("reg_form");
 
-    document.querySelector("[data-action='open-reg']").addEventListener("click", (e) => {
-      e.preventDefault();
+    function showLogin() {
+      loginForm.style.display = "block";
+      regForm.style.display = "none";
+    }
+
+    function showRegister() {
       loginForm.style.display = "none";
       regForm.style.display = "block";
+    }
+
+    if (route.mode === "register") {
+      showRegister();
+    } else {
+      showLogin();
+    }
+
+    document.querySelector("[data-action='open-reg']").addEventListener("click", (e) => {
+      e.preventDefault();
+      setRoute("login", { mode: "register" });
     });
 
     document.querySelector("[data-action='open-login']").addEventListener("click", (e) => {
       e.preventDefault();
-      loginForm.style.display = "block";
-      regForm.style.display = "none";
+      setRoute("login", { mode: "login" });
     });
 
     loginForm.addEventListener("submit", async (e) => {
@@ -331,15 +398,17 @@
       };
 
       try {
-        const res = await fetch("/login", {
+        const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(body)
         });
 
-        if (!res.ok) {
-          alert(await res.text());
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          alert(data.error || "Ошибка входа");
           return;
         }
 
@@ -360,15 +429,17 @@
       };
 
       try {
-        const res = await fetch("/registr", {
+        const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(body)
         });
 
-        if (!res.ok) {
-          alert(await res.text());
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          alert(data.error || "Ошибка регистрации");
           return;
         }
 
@@ -399,7 +470,7 @@
       const ok = confirm("Выйти из аккаунта?");
       if (!ok) return;
 
-      await fetch("/logout", { method: "POST", credentials: "include" });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
       setRoute("main", { edit: null }, true);
     });
 
@@ -594,7 +665,7 @@
     bindThemeButton();
 
     if (route.view === "main") await initMainView();
-    if (route.view === "login") await initLoginView();
+    if (route.view === "login") await initLoginView(route);
     if (route.view === "lk") await initLkView();
     if (route.view === "admin") await initAdminView(route);
   }
