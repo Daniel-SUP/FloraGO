@@ -48,8 +48,8 @@
 
       <form id="login_form">
         <h1 class="form-head">Вход в аккаунт</h1>
-        <label for="login_name">Ваш логин:</label>
-        <input type="text" id="login_name" name="login" placeholder="Введите логин" />
+        <label for="login_credential">Логин или email:</label>
+        <input type="text" id="login_credential" name="credential" placeholder="Введите логин или email" />
 
         <label for="login_password">Ваш пароль:</label>
         <input type="password" id="login_password" name="password" placeholder="Введите пароль" />
@@ -61,8 +61,11 @@
       <form id="reg_form" style="display:none;">
         <h1 class="form-head">Регистрация</h1>
 
-        <label for="reg_name">Ваш логин:</label>
-        <input type="text" id="reg_name" name="login" placeholder="Введите логин" />
+        <label for="reg_login">Ваш логин:</label>
+        <input type="text" id="reg_login" name="login" placeholder="Введите логин" />
+
+        <label for="reg_email">Ваш email:</label>
+        <input type="email" id="reg_email" name="email" placeholder="Введите email" />
 
         <label for="reg_password">Придумайте пароль:</label>
         <input type="password" id="reg_password" name="password" placeholder="Придумайте пароль" />
@@ -87,8 +90,9 @@
 
           <div class="lk_info">
             <div class="lk_row"><span>Никнейм:</span> <b id="lk_username">Загрузка...</b></div>
-            <div class="lk_row"><span>Роль:</span> <b id="lk_role">Загрузка...</b></div>
+            <div class="lk_row"><span>Email:</span> <b id="lk_email">Загрузка...</b></div>
             <div class="lk_row"><span>Номер телефона: +</span> <b id="lk_phone">Загрузка...</b></div>
+            <div class="lk_row"><span>Роль:</span> <b id="lk_role">Загрузка...</b></div>
           </div>
         </div>
 
@@ -322,7 +326,7 @@
       e.preventDefault();
 
       const body = {
-        login: loginForm.login.value.trim(),
+        credential: loginForm.credential.value.trim(),
         password: loginForm.password.value.trim()
       };
 
@@ -350,6 +354,7 @@
 
       const body = {
         login: regForm.login.value.trim(),
+        email: regForm.email.value.trim(),
         password: regForm.password.value.trim(),
         phone: regForm.phone.value.trim()
       };
@@ -382,8 +387,9 @@
     }
 
     document.getElementById("lk_username").textContent = data.username;
+    document.getElementById("lk_email").textContent = data.email || "-";
+    document.getElementById("lk_phone").textContent = data.phone || "-";
     document.getElementById("lk_role").textContent = data.role;
-    document.getElementById("lk_phone").textContent = data.phone;
 
     if (data.role === "admin") {
       document.getElementById("lk_avatar").src = "https://avatars.mds.yandex.net/i?id=10a35c04830c25eb71e1dfdc207f3574_l-3613310-images-thumbs&n=13";
@@ -405,6 +411,7 @@
 
     document.getElementById("editProfileBtn").addEventListener("click", async () => {
       const usernameEl = document.getElementById("lk_username");
+      const emailEl = document.getElementById("lk_email");
       const phoneEl = document.getElementById("lk_phone");
       const btn = document.getElementById("editProfileBtn");
 
@@ -414,12 +421,19 @@
         usernameInput.value = usernameEl.textContent;
         usernameInput.className = "edit_input";
 
+        const emailInput = document.createElement("input");
+        emailInput.id = "edit_email";
+        emailInput.type = "email";
+        emailInput.value = emailEl.textContent;
+        emailInput.className = "edit_input";
+
         const phoneInput = document.createElement("input");
         phoneInput.id = "edit_phone";
         phoneInput.value = phoneEl.textContent;
         phoneInput.className = "edit_input";
 
         usernameEl.replaceWith(usernameInput);
+        emailEl.replaceWith(emailInput);
         phoneEl.replaceWith(phoneInput);
 
         btn.textContent = "Сохранить";
@@ -428,13 +442,14 @@
       }
 
       const newUsername = document.getElementById("edit_username").value.trim();
+      const newEmail = document.getElementById("edit_email").value.trim();
       const newPhone = document.getElementById("edit_phone").value.trim();
 
       const res = await fetch("/update_user_full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ login: newUsername, phone: newPhone })
+        body: JSON.stringify({ login: newUsername, email: newEmail, phone: newPhone })
       });
 
       const result = await res.json();
@@ -447,11 +462,16 @@
       usernameB.id = "lk_username";
       usernameB.textContent = newUsername;
 
+      const emailB = document.createElement("b");
+      emailB.id = "lk_email";
+      emailB.textContent = newEmail;
+
       const phoneB = document.createElement("b");
       phoneB.id = "lk_phone";
       phoneB.textContent = newPhone;
 
       document.getElementById("edit_username").replaceWith(usernameB);
+      document.getElementById("edit_email").replaceWith(emailB);
       document.getElementById("edit_phone").replaceWith(phoneB);
 
       btn.textContent = "Редактировать профиль";

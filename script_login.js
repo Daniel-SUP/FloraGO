@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault(); // не даём браузеру сам отправлять форму
 
     const body = {
-      login: loginForm.login.value.trim(),
+      credential: loginForm.credential.value.trim(),
       password: loginForm.password.value.trim()
     };
 
@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const body = {
       login: regForm.login.value.trim(),
+      email: regForm.email.value.trim(),
       password: regForm.password.value.trim(),
       phone: regForm.phone.value.trim()
     };

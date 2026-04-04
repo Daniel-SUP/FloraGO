@@ -54,49 +54,50 @@ app.use(session({
   cookie: { secure: false }        // РґР»СЏ http (РµСЃР»Рё https вЂ” СЃС‚Р°РІСЊ true)
 }));
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 //РІС…РѕРґ РІ Р°РєРєР°СѓРЅС‚
 app.post('/login', (req, res) => {
-  const { login, password } = req.body;
+  const { credential, password } = req.body;
 
-  if (!login) {
-    return res.status(400).send('login РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ');
+  if (!credential) {
+    return res.status(400).send('login или email обязателен');
   }
 
   if (!password) {
-    return res.status(400).send('password РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ');
+    return res.status(400).send('password обязателен');
   }
 
-  // 1. РџСЂРѕРІРµСЂСЏРµРј, РµСЃС‚СЊ Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ
-  const sql = 'SELECT * FROM users WHERE login = ?';
-  db.query(sql, [login], async (err, rows) => {
+  const sql = 'SELECT id, login, email, password, phone, role FROM users WHERE login = ? OR email = ?';
+  db.query(sql, [credential, credential], async (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).send('РћС€РёР±РєР° Р±Р°Р·С‹ РґР°РЅРЅС‹С…');
+      return res.status(500).send('Ошибка базы данных');
     }
 
-    // РџРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµС‚
     if (rows.length === 0) {
-      return res.status(400).send('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ');
+      return res.status(400).send('Пользователь не найден');
     }
 
     const user = rows[0];
 
-    // 2. РЎСЂР°РІРЅРёРІР°РµРј РїР°СЂРѕР»Рё
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).send('РќРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ');
+      return res.status(400).send('Неверный пароль');
     }
-    const role = user.role;
-    // 3. РЈРґР°С‡РЅС‹Р№ РІС…РѕРґ
-     req.session.user = {
+
+    req.session.user = {
       id: user.id,
       login: user.login,
-      role: user.role,
-      phone: user.phone
+      email: user.email,
+      phone: user.phone,
+      role: user.role || "user",
     };
-   // РџРµСЂРµРєРёРґС‹РІР°РµРј РЅР° РѕСЃРЅРѕРІРЅСѓСЋ СЃС‚СЂР°РЅРёС†Сѓ СЃ РїР°СЂР°РјРµС‚СЂРѕРј login
-    res.json({ redirect: "/"});
+
+    res.json({ redirect: "/" });
   });
 });
 
@@ -105,67 +106,75 @@ app.post('/login', (req, res) => {
 
 //СЂРµРіРёСЃС‚СЂР°С†РёСЏ Р°РєРєР°СѓРЅС‚Р°
 app.post('/registr', (req, res) => {
-  const { login, password, phone } = req.body;
+  const { login, email, password, phone } = req.body;
 
   if (!login) {
-    return res.status(400).send('login РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ');
+    return res.status(400).send('login обязателен');
+  }
+
+  if (!email) {
+    return res.status(400).send('email обязателен');
   }
 
   if (!password) {
-    return res.status(400).send('password РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ');
+    return res.status(400).send('password обязателен');
   }
 
   if (!phone) {
-  return res.status(400).send('phone РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ');
-}
+    return res.status(400).send('phone обязателен');
+  }
 
-// Р·Р°РїСЂРµС‰Р°РµРј +
-if (phone.includes('+')) {
-  return res.status(400).send('СѓРєР°Р¶РёС‚Рµ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° Р±РµР· +');
-}
+  if (!isValidEmail(email)) {
+    return res.status(400).send('Некорректный email');
+  }
 
-// С‚РѕР»СЊРєРѕ С†РёС„СЂС‹
-if (!/^\d+$/.test(phone)) {
-  return res.status(400).send('РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ С‚РѕР»СЊРєРѕ С†РёС„СЂС‹');
-}
+  if (password.length < 6) {
+    return res.status(400).send('Пароль должен быть не менее 6 символов');
+  }
 
-// РґР»РёРЅР° РЅРѕРјРµСЂР°
-if (phone.length != 12) {
-  return res.status(400).send('РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° СѓРєР°Р·Р°РЅ РЅРµРІРµСЂРЅРѕ');
-}
+  if (login.trim().length < 3) {
+    return res.status(400).send('Логин должен быть не короче 3 символов');
+  }
 
+  if (phone.includes('+')) {
+    return res.status(400).send('укажите номер телефона без +');
+  }
 
- const checkSql = 'SELECT * FROM users WHERE login = ? OR phone = ?';
- db.query(checkSql, [login, phone], async (err, rows) => {
+  if (!/^\d+$/.test(phone)) {
+    return res.status(400).send('номер телефона должен содержать только цифры');
+  }
+
+  if (phone.length !== 12) {
+    return res.status(400).send('номер телефона указан неверно');
+  }
+
+ const checkSql = 'SELECT id, login, email, phone FROM users WHERE login = ? OR email = ? OR phone = ?';
+ db.query(checkSql, [login, email, phone], async (err, rows) => {
       if (err) {
-        console.error('РћС€РёР±РєР° РїСЂРѕРІРµСЂРєРё:', err);
-        return res.status(500).send('РћС€РёР±РєР° Р±Р°Р·С‹ РґР°РЅРЅС‹С…');
+        console.error('Ошибка проверки:', err);
+        return res.status(500).send('Ошибка базы данных');
       }
 
       if (rows.length > 0) {
-       if (rows[0].login === login) {
-        return res.status(400).send("РўР°РєРѕР№ Р»РѕРіРёРЅ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚!");
-    }
-        if (rows[0].phone === phone) {
-        return res.status(400).send("Р­С‚РѕС‚ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ!");
-    }
-}
+        if (rows[0].login === login) return res.status(400).send("Такой логин уже существует");
+        if (rows[0].email === email) return res.status(400).send("Пользователь с таким email уже существует");
+        if (rows[0].phone === phone) return res.status(400).send("Этот номер телефона уже зарегистрирован");
+      }
 
-
-      // С…РµС€РёСЂРѕРІР°РЅРёРµ РїР°СЂРѕР»СЏ
-      const hashed_password = await bcrypt.hash(password, 10);
-
-  const sql = 'INSERT INTO users (login, password, phone) VALUES (?, ?, ?)';
-  db.query(sql, [login, hashed_password, phone], (err, result) => {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const sql = 'INSERT INTO users (login, email, password, phone, role) VALUES (?, ?, ?, ?, ?)';
+      db.query(sql, [login.trim(), email, hashedPassword, phone, "user"], (err, result) => {
     if (err) {
-      console.error('РћС€РёР±РєР° РІСЃС‚Р°РІРєРё:', err);
-      return res.status(500).send('РћС€РёР±РєР° Р±Р°Р·С‹ РґР°РЅРЅС‹С…');
+      console.error('Ошибка вставки:', err);
+      return res.status(500).send('Ошибка базы данных');
     }
-  
-      req.session.user = {
-      login: login,
+
+    req.session.user = {
+      id: result.insertId,
+      login: login.trim(),
+      email,
+      phone,
       role: "user",
-      phone: phone
     };
     res.json({ redirect: "/" });
   });
@@ -204,8 +213,9 @@ app.get("/check_user_info", (req, res) => {
 
   res.json({
     username: req.session.user.login,
+    email: req.session.user.email,
+    phone: req.session.user.phone,
     role: req.session.user.role,
-    phone: req.session.user.phone
   });
 });
 
@@ -300,39 +310,45 @@ app.put("/products/:id", requireAdmin, (req, res) => {
 
 app.post("/update_user_full", (req, res) => {
   if (!req.session.user) {
-    return res.json({ ok: false, error: "РќРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ" });
+    return res.json({ ok: false, error: "Не авторизован" });
   }
 
-  const { login, phone } = req.body;
+  const { login, email, phone } = req.body;
 
-  if (!login) return res.json({ ok: false, error: "Р›РѕРіРёРЅ РѕР±СЏР·Р°С‚РµР»РµРЅ" });
-  if (!phone) return res.json({ ok: false, error: "РўРµР»РµС„РѕРЅ РѕР±СЏР·Р°С‚РµР»РµРЅ" });
+  if (!login) return res.json({ ok: false, error: "Логин обязателен" });
+  if (!email) return res.json({ ok: false, error: "Email обязателен" });
+  if (!phone) return res.json({ ok: false, error: "Телефон обязателен" });
 
-  // РџСЂРѕРІРµСЂРєР° С‚РµР»РµС„РѕРЅР°
-  if (phone.includes("+")) return res.json({ ok: false, error: "РўРµР»РµС„РѕРЅ Р±РµР· +" });
-  if (!/^\d+$/.test(phone)) return res.json({ ok: false, error: "РўРѕР»СЊРєРѕ С†РёС„СЂС‹" });
-  if (phone.length === 12) return res.json({ ok: false, error: "РќРµРІРµСЂРЅР°СЏ РґР»РёРЅР° С‚РµР»РµС„РѕРЅР°" });
+  if (!isValidEmail(email)) return res.json({ ok: false, error: "Некорректный email" });
+  if (login.trim().length < 3) return res.json({ ok: false, error: "Логин должен быть не короче 3 символов" });
+  if (phone.includes("+")) return res.json({ ok: false, error: "Телефон без +" });
+  if (!/^\d+$/.test(phone)) return res.json({ ok: false, error: "Телефон должен содержать только цифры" });
+  if (phone.length !== 12) return res.json({ ok: false, error: "Неверная длина телефона" });
 
-// РџСЂРѕРІРµСЂРєР° СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚Рё
   const checkLoginSql = "SELECT id FROM users WHERE login = ? AND id != ?";
-db.query(checkLoginSql, [login, req.session.user.id], (err, rows) => {
-  if (err) return res.json({ ok: false, error: "РћС€РёР±РєР° Р±Р°Р·С‹" });
-  if (rows.length > 0) return res.json({ ok: false, error: "Р›РѕРіРёРЅ СѓР¶Рµ Р·Р°РЅСЏС‚" });
+db.query(checkLoginSql, [login.trim(), req.session.user.id], (err, rows) => {
+  if (err) return res.json({ ok: false, error: "Ошибка базы" });
+  if (rows.length > 0) return res.json({ ok: false, error: "Логин уже занят" });
 
-  const checkPhoneSql = "SELECT id FROM users WHERE phone = ? AND id != ?";
-  db.query(checkPhoneSql, [phone, req.session.user.id], (err2, rows2) => {
-    if (err2) return res.json({ ok: false, error: "РћС€РёР±РєР° Р±Р°Р·С‹" });
-    if (rows2.length > 0) return res.json({ ok: false, error: "Р”Р°РЅРЅС‹Р№ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° СѓР¶Рµ Р·Р°СЂРµРіРµСЃС‚СЂРёСЂРѕРІР°РЅ" });
+  const checkEmailSql = "SELECT id FROM users WHERE email = ? AND id != ?";
+  db.query(checkEmailSql, [email, req.session.user.id], (err2, rows2) => {
+    if (err2) return res.json({ ok: false, error: "Ошибка базы" });
+    if (rows2.length > 0) return res.json({ ok: false, error: "Email уже занят" });
 
-    const sql = "UPDATE users SET login = ?, phone = ? WHERE id = ?";
-    db.query(sql, [login, phone, req.session.user.id], (err) => {
-      if (err) return res.json({ ok: false, error: "РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ" });
+    const checkPhoneSql = "SELECT id FROM users WHERE phone = ? AND id != ?";
+    db.query(checkPhoneSql, [phone, req.session.user.id], (err3, rows3) => {
+      if (err3) return res.json({ ok: false, error: "Ошибка базы" });
+      if (rows3.length > 0) return res.json({ ok: false, error: "Телефон уже занят" });
 
-      // РћР±РЅРѕРІР»СЏРµРј СЃРµСЃСЃРёСЋ
-      req.session.user.login = login;
-      req.session.user.phone = phone;
+      const sql = "UPDATE users SET login = ?, email = ?, phone = ? WHERE id = ?";
+      db.query(sql, [login.trim(), email, phone, req.session.user.id], (err4) => {
+        if (err4) return res.json({ ok: false, error: "Ошибка обновления" });
 
-      res.json({ ok: true });
+        req.session.user.login = login.trim();
+        req.session.user.email = email;
+        req.session.user.phone = phone;
+        res.json({ ok: true });
+      });
     });
   });
 });
