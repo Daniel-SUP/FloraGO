@@ -13,10 +13,48 @@ module.exports = ({ db }) => {
   const legacyRouter = express.Router();
   const dbPromise = db.promise();
 
+  function normalizeItem(row) {
+    return {
+      id: row.id,
+      title: row.title,
+      price: row.price,
+      image: row.image,
+      rating: row.rating,
+      reviews: row.reviews
+    };
+  }
+
+  function parseItemId(rawId) {
+    const itemId = Number(rawId);
+    return Number.isInteger(itemId) && itemId > 0 ? itemId : null;
+  }
+
+  function validateItemPayload(body) {
+    const title = body.title?.trim();
+    const image = body.image?.trim();
+    const price = Number(body.price);
+
+    if (!title || !image || Number.isNaN(price)) {
+      return { ok: false, error: "title, price и image обязательны" };
+    }
+
+    if (price <= 0) {
+      return { ok: false, error: "price должен быть больше 0" };
+    }
+
+    return { ok: true, value: { title, price, image } };
+  }
+
   async function listProducts(req, res) {
     try {
       const [rows] = await dbPromise.query("SELECT * FROM products");
-      res.json(rows);
+      const items = rows.map(normalizeItem);
+
+      if (req.baseUrl === "") {
+        return res.json(items);
+      }
+
+      res.json({ ok: true, items });
     } catch (error) {
       console.error("Ошибка получения товаров:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -24,13 +62,25 @@ module.exports = ({ db }) => {
   }
 
   async function getProduct(req, res) {
+    const itemId = parseItemId(req.params.id);
+
+    if (!itemId) {
+      return res.status(400).json({ ok: false, error: "Некорректный id товара" });
+    }
+
     try {
-      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [req.params.id]);
+      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [itemId]);
       if (rows.length === 0) {
-        return res.status(404).json({ ok: false, error: "Не найдено" });
+        return res.status(404).json({ ok: false, error: "Товар не найден" });
       }
 
-      res.json(rows[0]);
+      const item = normalizeItem(rows[0]);
+
+      if (req.baseUrl === "") {
+        return res.json(item);
+      }
+
+      res.json({ ok: true, item });
     } catch (error) {
       console.error("Ошибка получения товара:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -38,13 +88,12 @@ module.exports = ({ db }) => {
   }
 
   async function createProduct(req, res) {
-    const title = req.body.title?.trim();
-    const price = req.body.price;
-    const image = req.body.image?.trim();
-
-    if (!title || !price || !image) {
-      return res.status(400).json({ ok: false, error: "Заполните все поля" });
+    const validation = validateItemPayload(req.body);
+    if (!validation.ok) {
+      return res.status(400).json({ ok: false, error: validation.error });
     }
+
+    const { title, price, image } = validation.value;
 
     try {
       const [result] = await dbPromise.query(
@@ -52,7 +101,14 @@ module.exports = ({ db }) => {
         [title, price, image]
       );
 
-      res.json({ ok: true, id: result.insertId });
+      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [result.insertId]);
+      const item = normalizeItem(rows[0]);
+
+      if (req.baseUrl === "") {
+        return res.json({ ok: true, id: result.insertId });
+      }
+
+      res.status(201).json({ ok: true, item });
     } catch (error) {
       console.error("Ошибка добавления товара:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -60,25 +116,36 @@ module.exports = ({ db }) => {
   }
 
   async function updateProduct(req, res) {
-    const title = req.body.title?.trim();
-    const price = req.body.price;
-    const image = req.body.image?.trim();
-
-    if (!title || !price || !image) {
-      return res.status(400).json({ ok: false, error: "Заполните все поля" });
+    const itemId = parseItemId(req.params.id);
+    if (!itemId) {
+      return res.status(400).json({ ok: false, error: "Некорректный id товара" });
     }
+
+    const validation = validateItemPayload(req.body);
+    if (!validation.ok) {
+      return res.status(400).json({ ok: false, error: validation.error });
+    }
+
+    const { title, price, image } = validation.value;
 
     try {
       const [result] = await dbPromise.query(
         "UPDATE products SET title = ?, price = ?, image = ? WHERE id = ?",
-        [title, price, image, req.params.id]
+        [title, price, image, itemId]
       );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({ ok: false, error: "Товар не найден" });
       }
 
-      res.json({ ok: true });
+      const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [itemId]);
+      const item = normalizeItem(rows[0]);
+
+      if (req.baseUrl === "") {
+        return res.json({ ok: true });
+      }
+
+      res.json({ ok: true, item });
     } catch (error) {
       console.error("Ошибка обновления товара:", error);
       res.status(500).json({ ok: false, error: "Ошибка сервера" });
@@ -86,8 +153,13 @@ module.exports = ({ db }) => {
   }
 
   async function deleteProduct(req, res) {
+    const itemId = parseItemId(req.params.id);
+    if (!itemId) {
+      return res.status(400).json({ ok: false, error: "Некорректный id товара" });
+    }
+
     try {
-      const [result] = await dbPromise.query("DELETE FROM products WHERE id = ?", [req.params.id]);
+      const [result] = await dbPromise.query("DELETE FROM products WHERE id = ?", [itemId]);
 
       if (result.affectedRows === 0) {
         return res.status(404).json({ ok: false, error: "Товар не найден" });
@@ -115,7 +187,6 @@ module.exports = ({ db }) => {
   return [
     { path: "/api/items", router: apiRouter },
     { path: "/api/products", router: apiRouter },
-    { path: "/", router: legacyRouter }
+    { path: "", router: legacyRouter }
   ];
 };
-
