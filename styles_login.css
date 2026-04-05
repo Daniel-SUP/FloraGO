@@ -56,6 +56,11 @@ p {
   color: var(--text-muted);
 }
 
+.form-note {
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
 @media (max-width: 480px) {
   body {
     padding: 12px;

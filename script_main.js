@@ -55,6 +55,7 @@
         <input type="password" id="login_password" name="password" placeholder="Введите пароль" />
 
         <button type="submit">Отправить</button>
+        <p><a href="#" data-action="open-forgot">Забыли пароль?</a></p>
         <p>Нет аккаунта? <a href="#" data-action="open-reg">Зарегистрироваться</a></p>
       </form>
 
@@ -75,6 +76,34 @@
 
         <button type="submit">Отправить</button>
         <p>Уже есть аккаунт? <a href="#" data-action="open-login">Войти</a></p>
+      </form>
+
+      <form id="forgot_form" style="display:none;">
+        <h1 class="form-head">Восстановление пароля</h1>
+        <p class="form-note">Введите email, и мы отправим на него шестизначный код.</p>
+
+        <label for="forgot_email">Ваш email:</label>
+        <input type="email" id="forgot_email" name="email" placeholder="Введите email" />
+
+        <button type="submit">Отправить код</button>
+        <p>Вспомнили пароль? <a href="#" data-action="open-login">Вернуться ко входу</a></p>
+      </form>
+
+      <form id="reset_form" style="display:none;">
+        <h1 class="form-head">Новый пароль</h1>
+        <p class="form-note">Введите код из письма и задайте новый пароль.</p>
+
+        <label for="reset_email">Email:</label>
+        <input type="email" id="reset_email" name="email" placeholder="Введите email" />
+
+        <label for="reset_code">Код из письма:</label>
+        <input type="text" id="reset_code" name="code" placeholder="6 цифр" inputmode="numeric" maxlength="6" />
+
+        <label for="reset_password">Новый пароль:</label>
+        <input type="password" id="reset_password" name="newPassword" placeholder="Введите новый пароль" />
+
+        <button type="submit">Сменить пароль</button>
+        <p>Нужен новый код? <a href="#" data-action="open-forgot">Запросить снова</a></p>
       </form>
     `,
     lk: `
@@ -165,6 +194,14 @@
       return { view: "login", mode: "login", edit: null };
     }
 
+    if (pathname === "/auth/forgot-password") {
+      return { view: "login", mode: "forgot", edit: null };
+    }
+
+    if (pathname === "/auth/reset-password") {
+      return { view: "login", mode: "reset", edit: null };
+    }
+
     if (pathname === "/lk") {
       return { view: "lk", mode: null, edit: null };
     }
@@ -188,7 +225,10 @@
     }
 
     if (view === "login") {
-      return extraParams.mode === "register" ? "/auth/register" : "/auth/login";
+      if (extraParams.mode === "register") return "/auth/register";
+      if (extraParams.mode === "forgot") return "/auth/forgot-password";
+      if (extraParams.mode === "reset") return "/auth/reset-password";
+      return "/auth/login";
     }
 
     if (view === "lk") {
@@ -390,19 +430,43 @@
   async function initLoginView(route) {
     const loginForm = document.getElementById("login_form");
     const regForm = document.getElementById("reg_form");
+    const forgotForm = document.getElementById("forgot_form");
+    const resetForm = document.getElementById("reset_form");
 
     function showLogin() {
       loginForm.style.display = "block";
       regForm.style.display = "none";
+      forgotForm.style.display = "none";
+      resetForm.style.display = "none";
     }
 
     function showRegister() {
       loginForm.style.display = "none";
       regForm.style.display = "block";
+      forgotForm.style.display = "none";
+      resetForm.style.display = "none";
+    }
+
+    function showForgot() {
+      loginForm.style.display = "none";
+      regForm.style.display = "none";
+      forgotForm.style.display = "block";
+      resetForm.style.display = "none";
+    }
+
+    function showReset() {
+      loginForm.style.display = "none";
+      regForm.style.display = "none";
+      forgotForm.style.display = "none";
+      resetForm.style.display = "block";
     }
 
     if (route.mode === "register") {
       showRegister();
+    } else if (route.mode === "forgot") {
+      showForgot();
+    } else if (route.mode === "reset") {
+      showReset();
     } else {
       showLogin();
     }
@@ -412,9 +476,18 @@
       setRoute("login", { mode: "register" });
     });
 
-    document.querySelector("[data-action='open-login']").addEventListener("click", (e) => {
-      e.preventDefault();
-      setRoute("login", { mode: "login" });
+    document.querySelectorAll("[data-action='open-login']").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        setRoute("login", { mode: "login" });
+      });
+    });
+
+    document.querySelectorAll("[data-action='open-forgot']").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        setRoute("login", { mode: "forgot" });
+      });
     });
 
     loginForm.addEventListener("submit", async (e) => {
@@ -472,6 +545,67 @@
         }
 
         setRoute("lk", {}, true);
+      } catch (err) {
+        alert(`Ошибка: ${err.message}`);
+      }
+    });
+
+    forgotForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const body = {
+        email: forgotForm.email.value.trim()
+      };
+
+      try {
+        const res = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          alert(data.error || "Не удалось отправить код");
+          return;
+        }
+
+        resetForm.email.value = body.email;
+        alert(data.message || "Код отправлен");
+        setRoute("login", { mode: "reset" }, true);
+      } catch (err) {
+        alert(`Ошибка: ${err.message}`);
+      }
+    });
+
+    resetForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const body = {
+        email: resetForm.email.value.trim(),
+        code: resetForm.code.value.trim(),
+        newPassword: resetForm.newPassword.value.trim()
+      };
+
+      try {
+        const res = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          alert(data.error || "Не удалось сменить пароль");
+          return;
+        }
+
+        alert(data.message || "Пароль изменен");
+        setRoute("login", { mode: "login" }, true);
       } catch (err) {
         alert(`Ошибка: ${err.message}`);
       }

@@ -1,5 +1,6 @@
 ﻿const express = require("express");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 
 function createHttpError(status, message) {
   const error = new Error(message);
@@ -26,14 +27,28 @@ function normalizeLegacyUser(user) {
   };
 }
 
-module.exports = ({ db, isValidEmail }) => {
+module.exports = ({ db, isValidEmail, mailer }) => {
   const apiRouter = express.Router();
   const legacyRouter = express.Router();
   const dbPromise = db.promise();
+  const passwordResetCodeLifetimeMinutes = 10;
+  const passwordResetMinIntervalSeconds = 60;
+  const maxPasswordResetAttempts = 5;
+
+  function generateResetCode() {
+    return String(crypto.randomInt(100000, 1000000));
+  }
+
+  async function cleanupPasswordResets(userId) {
+    await dbPromise.query(
+      "DELETE FROM password_resets WHERE user_id = ? AND (used = 1 OR expires_at < NOW())",
+      [userId]
+    );
+  }
 
   async function registerUser(req) {
     const login = req.body.login?.trim();
-    const email = req.body.email?.trim();
+    const email = req.body.email?.trim().toLowerCase();
     const password = req.body.password;
     const phone = req.body.phone?.trim();
 
@@ -90,7 +105,7 @@ module.exports = ({ db, isValidEmail }) => {
 
     const [rows] = await dbPromise.query(
       "SELECT id, login, email, password, phone, role FROM users WHERE login = ? OR email = ?",
-      [credential, credential]
+      [credential, credential.toLowerCase()]
     );
 
     if (rows.length === 0) {
@@ -109,6 +124,123 @@ module.exports = ({ db, isValidEmail }) => {
     req.user = normalizedUser;
 
     return normalizedUser;
+  }
+
+  async function requestPasswordReset(req) {
+    const email = req.body.email?.trim().toLowerCase();
+
+    if (!email) throw createHttpError(400, "Email обязателен");
+    if (!isValidEmail(email)) throw createHttpError(400, "Некорректный email");
+
+    const [rows] = await dbPromise.query(
+      "SELECT id, email FROM users WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return { message: "Если аккаунт с таким email существует, код отправлен" };
+    }
+
+    const user = rows[0];
+    await cleanupPasswordResets(user.id);
+
+    const [activeRows] = await dbPromise.query(
+      `SELECT id, TIMESTAMPDIFF(SECOND, last_sent_at, NOW()) AS diff_seconds
+       FROM password_resets
+       WHERE user_id = ? AND used = 0 AND expires_at >= NOW()
+       ORDER BY id DESC
+       LIMIT 1`,
+      [user.id]
+    );
+
+    if (activeRows.length > 0) {
+      const diffSeconds = activeRows[0].diff_seconds ?? passwordResetMinIntervalSeconds;
+
+      if (diffSeconds < passwordResetMinIntervalSeconds) {
+        throw createHttpError(
+          429,
+          `Повторно запросить код можно через ${passwordResetMinIntervalSeconds - diffSeconds} сек.`
+        );
+      }
+
+      await dbPromise.query("UPDATE password_resets SET used = 1 WHERE id = ?", [activeRows[0].id]);
+    }
+
+    const code = generateResetCode();
+    const codeHash = await bcrypt.hash(code, 10);
+
+    await dbPromise.query(
+      `INSERT INTO password_resets (user_id, code_hash, expires_at, attempts, used, last_sent_at)
+       VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE), 0, 0, NOW())`,
+      [user.id, codeHash, passwordResetCodeLifetimeMinutes]
+    );
+
+    await mailer.sendPasswordResetCode({ to: user.email, code });
+
+    return { message: "Если аккаунт с таким email существует, код отправлен" };
+  }
+
+  async function resetPassword(req) {
+    const email = req.body.email?.trim().toLowerCase();
+    const code = req.body.code?.trim();
+    const newPassword = req.body.newPassword;
+
+    if (!email) throw createHttpError(400, "Email обязателен");
+    if (!isValidEmail(email)) throw createHttpError(400, "Некорректный email");
+    if (!code) throw createHttpError(400, "Код обязателен");
+    if (!/^\d{6}$/.test(code)) throw createHttpError(400, "Код должен состоять из 6 цифр");
+    if (!newPassword) throw createHttpError(400, "Новый пароль обязателен");
+    if (newPassword.length < 6) throw createHttpError(400, "Пароль должен быть не менее 6 символов");
+
+    const [userRows] = await dbPromise.query(
+      "SELECT id FROM users WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (userRows.length === 0) {
+      throw createHttpError(400, "Неверный код или email");
+    }
+
+    const userId = userRows[0].id;
+    await cleanupPasswordResets(userId);
+
+    const [resetRows] = await dbPromise.query(
+      `SELECT id, code_hash, attempts
+       FROM password_resets
+       WHERE user_id = ? AND used = 0 AND expires_at >= NOW()
+       ORDER BY id DESC
+       LIMIT 1`,
+      [userId]
+    );
+
+    if (resetRows.length === 0) {
+      throw createHttpError(400, "Код не найден или истек");
+    }
+
+    const reset = resetRows[0];
+
+    if (reset.attempts >= maxPasswordResetAttempts) {
+      await dbPromise.query("UPDATE password_resets SET used = 1 WHERE id = ?", [reset.id]);
+      throw createHttpError(429, "Превышено количество попыток. Запросите новый код");
+    }
+
+    const isMatch = await bcrypt.compare(code, reset.code_hash);
+
+    if (!isMatch) {
+      await dbPromise.query("UPDATE password_resets SET attempts = attempts + 1 WHERE id = ?", [reset.id]);
+      throw createHttpError(400, "Неверный код или email");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await dbPromise.query("UPDATE users SET password = ? WHERE id = ?", [hashedPassword, userId]);
+    await dbPromise.query("UPDATE password_resets SET used = 1 WHERE user_id = ?", [userId]);
+
+    if (req.session) {
+      req.session.destroy(() => {});
+    }
+
+    return { message: "Пароль успешно изменен" };
   }
 
   function getCurrentUser(req) {
@@ -137,8 +269,13 @@ module.exports = ({ db, isValidEmail }) => {
   function handleApi(handler) {
     return async (req, res) => {
       try {
-        const user = await handler(req, res);
-        res.json({ ok: true, user });
+        const payload = await handler(req, res);
+
+        if (payload && typeof payload === "object" && !Array.isArray(payload) && !("id" in payload)) {
+          return res.json({ ok: true, ...payload });
+        }
+
+        res.json({ ok: true, user: payload });
       } catch (error) {
         console.error(error);
         res.status(error.status || 500).json({ ok: false, error: error.message || "Ошибка сервера" });
@@ -160,6 +297,8 @@ module.exports = ({ db, isValidEmail }) => {
 
   apiRouter.post("/register", handleApi(registerUser));
   apiRouter.post("/login", handleApi(loginUser));
+  apiRouter.post("/forgot-password", handleApi(requestPasswordReset));
+  apiRouter.post("/reset-password", handleApi(resetPassword));
   apiRouter.get("/me", (req, res) => {
     try {
       res.json({ ok: true, user: getCurrentUser(req) });

@@ -1,20 +1,71 @@
-﻿const express = require("express");
+﻿require("dotenv").config();
+const express = require("express");
 const bodyParser = require("body-parser");
 const mysql = require("mysql2");
 const session = require("express-session");
+const nodemailer = require("nodemailer");
 const createAuthRoutes = require("./routes/auth");
 const createProductRoutes = require("./routes/products");
 const createUserRoutes = require("./routes/users");
 
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "1111",
-  database: "flower_shop"
+  host: process.env.DB_HOST ,
+  user: process.env.DB_USER ,
+  password: process.env.DB_PASSWORD ,
+  database: process.env.DB_NAME
 });
+
+function createMailer() {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = Number(process.env.SMTP_PORT || 587);
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const smtpFrom = process.env.SMTP_FROM || smtpUser;
+
+  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
+    return {
+      enabled: false,
+      async sendPasswordResetCode({ to, code }) {
+        console.log(`[password-reset] SMTP не настроен. Код для ${to}: ${code}`);
+      }
+    };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    }
+  });
+
+  return {
+    enabled: true,
+    async sendPasswordResetCode({ to, code }) {
+      await transporter.sendMail({
+        from: smtpFrom,
+        to,
+        subject: "FloraGO: код для восстановления пароля",
+        text: `Ваш код для восстановления пароля: ${code}. Код действует 10 минут.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; color: #1f2937;">
+            <h2>FloraGO</h2>
+            <p>Ваш код для восстановления пароля:</p>
+            <p style="font-size: 28px; font-weight: 700; letter-spacing: 6px;">${code}</p>
+            <p>Код действует 10 минут. Если вы не запрашивали восстановление, просто проигнорируйте это письмо.</p>
+          </div>
+        `
+      });
+    }
+  };
+}
+
+const mailer = createMailer();
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -41,7 +92,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
 app.use(session({
-  secret: "flora_go_session_secret",
+  secret: process.env.SESSION_SECRET || "flora_go_session_secret",
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false }
@@ -52,7 +103,7 @@ app.use((req, res, next) => {
   next();
 });
 
-for (const { path, router } of createAuthRoutes({ db, isValidEmail })) {
+for (const { path, router } of createAuthRoutes({ db, isValidEmail, mailer })) {
   app.use(path, router);
 }
 
@@ -73,6 +124,14 @@ app.get("/auth/login", redirectAuthorizedUserToProfile, (req, res) => {
 });
 
 app.get("/auth/register", redirectAuthorizedUserToProfile, (req, res) => {
+  res.sendFile(`${__dirname}/main.html`);
+});
+
+app.get("/auth/forgot-password", redirectAuthorizedUserToProfile, (req, res) => {
+  res.sendFile(`${__dirname}/main.html`);
+});
+
+app.get("/auth/reset-password", redirectAuthorizedUserToProfile, (req, res) => {
   res.sendFile(`${__dirname}/main.html`);
 });
 
@@ -168,7 +227,30 @@ db.connect((error) => {
     return;
   }
 
-  app.listen(port, () => {
-    console.log(`Сервер запущен: http://localhost:${port}`);
-  });
+  db.promise().query(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      code_hash VARCHAR(255) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      attempts INT NOT NULL DEFAULT 0,
+      used TINYINT(1) NOT NULL DEFAULT 0,
+      last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_password_resets_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+    )
+  `)
+    .then(() => {
+      app.listen(port, () => {
+        console.log(`Сервер запущен: http://localhost:${port}`);
+        if (!mailer.enabled) {
+          console.log("SMTP не настроен. Коды восстановления будут выводиться в консоль.");
+        }
+      });
+    })
+    .catch((initError) => {
+      console.error("Ошибка инициализации таблицы password_resets:", initError);
+    });
 });
