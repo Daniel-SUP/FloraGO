@@ -143,6 +143,10 @@ app.get("/admin", (req, res) => {
   res.sendFile(`${__dirname}/main.html`);
 });
 
+app.get("/catalog", (req, res) => {
+  res.sendFile(`${__dirname}/main.html`);
+});
+
 app.get("/login.html", (req, res) => {
   res.redirect("/auth/login");
 });

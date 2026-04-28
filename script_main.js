@@ -1,19 +1,61 @@
 ﻿(() => {
   const app = document.getElementById("app");
-  const allowedViews = new Set(["main", "login", "lk", "admin"]);
+  const allowedViews = new Set(["main", "catalog", "login", "lk", "admin"]);
+
+  const productModalTemplate = `
+    <div id="product_modal" class="product_modal">
+      <div class="product_modal_content">
+        <span id="modal_close" class="modal_close">&times;</span>
+        <img id="modal_image" class="modal_image" alt="Товар" />
+        <h2 id="modal_title"></h2>
+        <p id="modal_rating"></p>
+        <p id="modal_price" class="modal_price"></p>
+
+        <div class="modal_buttons">
+          <button class="modal_btn add_cart">Добавить в корзину</button>
+          <button class="modal_btn buy_now">Купить</button>
+          <button class="modal_btn edit_product">Редактировать</button>
+        </div>
+      </div>
+    </div>
+  `;
 
   const templates = {
     main: `
       <div id="page_content">
         <div id="box" class="box">
-          <h1 class="head">FloraGo</h1>
+          <div class="box_inner">
+            <button id="home_logo" class="brand_link" type="button">FloraGo</button>
+          </div>
         </div>
 
         <button id="theme_change" class="theme_change">🌗</button>
         <button id="user_login" class="user_login" data-tooltip="Войти/Зарегистрироваться"></button>
         <button id="admin_panel" class="admin_panel" style="display:none;">⚙️</button>
 
-        <div id="products_container" class="products_container"></div>
+        <main class="main_content">
+          <section class="hero_section">
+            <div class="hero_copy">
+              <p class="eyebrow">Доставка цветов каждый день</p>
+              <h1 class="hero_title">Быстро доставляем цветы и радуем ваших близких</h1>
+              <p class="hero_text">FloraGo бережно собирает свежие букеты и доставляет их максимально быстро. Среднее ожидание заказа всего 40-60 минут, а наши цветы помогают каждый день радовать клиентов красивыми и качественными композициями.</p>
+            </div>
+          </section>
+
+          <section class="products_section">
+            <div class="section_heading">
+              <div>
+                <p class="section_kicker">Популярное</p>
+                <h2>Лучшие букеты</h2>
+              </div>
+              <div class="section_heading_actions">
+                <span class="section_note">Топ-4 по рейтингу и отзывам</span>
+                <button id="hero_catalog" class="section_cta" type="button">Перейти в каталог</button>
+              </div>
+            </div>
+            <div id="products_container" class="products_container products_row"></div>
+          </section>
+        </main>
 
         <footer class="site_footer">
           <div class="footer_content">
@@ -26,22 +68,52 @@
           </div>
         </footer>
       </div>
-
-      <div id="product_modal" class="product_modal">
-        <div class="product_modal_content">
-          <span id="modal_close" class="modal_close">&times;</span>
-          <img id="modal_image" class="modal_image" alt="Товар" />
-          <h2 id="modal_title"></h2>
-          <p id="modal_rating"></p>
-          <p id="modal_price" class="modal_price"></p>
-
-          <div class="modal_buttons">
-            <button class="modal_btn add_cart">Добавить в корзину</button>
-            <button class="modal_btn buy_now">Купить</button>
-            <button class="modal_btn edit_product">Редактировать</button>
+      ${productModalTemplate}
+    `,
+    catalog: `
+      <div id="page_content" class="catalog_page">
+        <div id="box" class="box">
+          <div class="box_inner">
+            <button id="home_logo" class="brand_link" type="button">FloraGo</button>
           </div>
         </div>
+
+        <button id="floating_home" class="floating_home" type="button">Главная</button>
+        <button id="theme_change" class="theme_change">🌗</button>
+        <button id="user_login" class="user_login" data-tooltip="Войти/Зарегистрироваться"></button>
+        <button id="admin_panel" class="admin_panel" style="display:none;">⚙️</button>
+
+        <main class="main_content">
+          <section class="catalog_intro">
+            <p class="eyebrow">Каталог FloraGo</p>
+            <h1 class="catalog_title">Все букеты в одном месте</h1>
+            <p class="catalog_text">Полная коллекция цветочных композиций. Открывайте карточки, чтобы посмотреть рейтинг, цену и быстро перейти к покупке.</p>
+          </section>
+
+          <section class="products_section">
+            <div class="section_heading">
+              <div>
+                <p class="section_kicker">Ассортимент</p>
+                <h2>Каталог букетов</h2>
+              </div>
+              <span id="catalog_count" class="section_note"></span>
+            </div>
+            <div id="products_container" class="products_container"></div>
+          </section>
+        </main>
+
+        <footer class="site_footer">
+          <div class="footer_content">
+            <span>© 2026 FloraGo</span>
+            <nav class="footer_links">
+              <a href="https://ru.wikipedia.org/wiki/%D0%A6%D0%B2%D0%B5%D1%82%D0%BE%D0%BA" target="_blank" rel="noopener noreferrer">О магазине</a>
+              <a href="#">Соцсети</a>
+              <a href="#">Политика конфиденциальности</a>
+            </nav>
+          </div>
+        </footer>
       </div>
+      ${productModalTemplate}
     `,
     login: `
       <button id="theme_change" class="theme_change">🌗</button>
@@ -176,6 +248,7 @@
 
   const styleMap = {
     main: "style-main",
+    catalog: "style-main",
     login: "style-login",
     lk: "style-lk",
     admin: "style-admin"
@@ -210,6 +283,10 @@
       return { view: "admin", mode: null, edit };
     }
 
+    if (pathname === "/catalog") {
+      return { view: "catalog", mode: null, edit: null };
+    }
+
     const requestedView = params.get("view") || "main";
     const view = allowedViews.has(requestedView) ? requestedView : "main";
     const mode = params.get("mode");
@@ -242,6 +319,10 @@
 
       const query = params.toString();
       return query ? `/admin?${query}` : "/admin";
+    }
+
+    if (view === "catalog") {
+      return "/catalog";
     }
 
     params.set("view", view);
@@ -314,7 +395,43 @@
     };
   }
 
-  async function initMainView() {
+  async function fetchProducts() {
+    const res = await fetch("/products");
+    return res.json();
+  }
+
+  function sortProductsByPopularity(products) {
+    return [...products].sort((a, b) => {
+      const ratingDiff = Number(b.rating) - Number(a.rating);
+      if (ratingDiff !== 0) {
+        return ratingDiff;
+      }
+
+      return Number(b.reviews) - Number(a.reviews);
+    });
+  }
+
+  function renderProductCards(productsContainer, products, onOpenProduct) {
+    productsContainer.innerHTML = "";
+
+    products.forEach((product) => {
+      const card = document.createElement("div");
+      card.className = "product_card";
+      card.innerHTML = `
+        <img src="${product.image}" class="product_image" alt="${product.title}">
+        <div class="product_info">
+          <div class="product_title">${product.title}</div>
+          <div class="product_rating">★ ${product.rating} (${product.reviews})</div>
+          <div class="product_price">${product.price} Br</div>
+        </div>
+      `;
+
+      card.addEventListener("click", () => onOpenProduct(product));
+      productsContainer.appendChild(card);
+    });
+  }
+
+  async function initStorefrontView({ view, limit = null }) {
     const nicknameDiv = document.getElementById("user_login");
     const modalButtons = document.querySelector(".modal_buttons");
     const editBtn = document.querySelector(".edit_product");
@@ -360,29 +477,29 @@
     }
 
     async function loadProducts() {
-      productsContainer.innerHTML = "";
+      productsContainer.innerHTML = '<p class="products_status">Загрузка букетов...</p>';
 
       try {
-        const res = await fetch("/products");
-        const products = await res.json();
+        const products = await fetchProducts();
+        const sortedProducts = view === "main" ? sortProductsByPopularity(products) : products;
+        const visibleProducts = limit ? sortedProducts.slice(0, limit) : sortedProducts;
 
-        products.forEach((p) => {
-          const card = document.createElement("div");
-          card.className = "product_card";
-          card.innerHTML = `
-            <img src="${p.image}" class="product_image" alt="${p.title}">
-            <div class="product_info">
-              <div class="product_title">${p.title}</div>
-              <div class="product_rating">★ ${p.rating} (${p.reviews})</div>
-              <div class="product_price">${p.price} Br</div>
-            </div>
-          `;
+        if (view === "catalog") {
+          const catalogCount = document.getElementById("catalog_count");
+          if (catalogCount) {
+            catalogCount.textContent = `${visibleProducts.length} позиций`;
+          }
+        }
 
-          card.addEventListener("click", () => openProductModal(p));
-          productsContainer.appendChild(card);
-        });
+        if (visibleProducts.length === 0) {
+          productsContainer.innerHTML = '<p class="products_status">Пока нет доступных букетов.</p>';
+          return;
+        }
+
+        renderProductCards(productsContainer, visibleProducts, openProductModal);
       } catch (err) {
         console.error("Ошибка загрузки товаров:", err);
+        productsContainer.innerHTML = '<p class="products_status">Не удалось загрузить каталог.</p>';
       }
     }
 
@@ -411,6 +528,28 @@
       setRoute("admin");
     });
 
+    const homeLogo = document.getElementById("home_logo");
+    const heroCatalog = document.getElementById("hero_catalog");
+    const floatingHome = document.getElementById("floating_home");
+
+    if (homeLogo) {
+      homeLogo.addEventListener("click", () => {
+        setRoute("main");
+      });
+    }
+
+    if (heroCatalog) {
+      heroCatalog.addEventListener("click", () => {
+        setRoute("catalog");
+      });
+    }
+
+    if (floatingHome) {
+      floatingHome.addEventListener("click", () => {
+        setRoute("main");
+      });
+    }
+
     editBtn.addEventListener("click", () => {
       if (!currentProductId) return;
       setRoute("admin", { edit: currentProductId });
@@ -425,6 +564,14 @@
     });
 
     await loadProducts();
+  }
+
+  async function initMainView() {
+    await initStorefrontView({ view: "main", limit: 4 });
+  }
+
+  async function initCatalogView() {
+    await initStorefrontView({ view: "catalog" });
   }
 
   async function initLoginView(route) {
@@ -983,6 +1130,7 @@
     bindThemeButton();
 
     if (route.view === "main") await initMainView();
+    if (route.view === "catalog") await initCatalogView();
     if (route.view === "login") await initLoginView(route);
     if (route.view === "lk") await initLkView();
     if (route.view === "admin") await initAdminView(route);
