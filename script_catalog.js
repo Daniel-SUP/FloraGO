@@ -309,7 +309,7 @@
             <span class="product_detail_rating">★ ${product.rating} (${product.reviews} отзывов)</span>
             <span class="product_detail_badge">Доставка 40-60 минут</span>
           </div>
-          <p class="product_detail_text">Свежая композиция, аккуратная сборка и быстрая доставка. Мы бережно подготавливаем каждый букет, чтобы он приехал красивым, свежим и действительно порадовал получателя.</p>
+          <p class="product_detail_text">${product.description || "Свежая композиция, аккуратная сборка и быстрая доставка. Мы бережно подготавливаем каждый букет, чтобы он приехал красивым, свежим и действительно порадовал получателя."}</p>
           <div class="product_detail_price">${product.price} Br</div>
           <div class="product_detail_actions">
             ${isAuthorized ? '<button id="add_to_cart" class="modal_btn" type="button">Добавить в корзину</button>' : '<button id="login_to_order" class="modal_btn" type="button">Войти</button>'}

@@ -154,6 +154,7 @@
             <input type="text" id="title" placeholder="Название товара" />
             <input type="number" id="price" placeholder="Цена" />
             <input type="text" id="image" placeholder="URL изображения" />
+            <textarea id="description" placeholder="Описание букета"></textarea>
 
             <button id="addProductBtn">Добавить товар</button>
             <button id="deleteProductBtn">Удалить товар</button>
@@ -741,6 +742,7 @@
       document.getElementById("title").value = product.title;
       document.getElementById("price").value = product.price;
       document.getElementById("image").value = product.image;
+      document.getElementById("description").value = product.description || "";
       btn.textContent = "Сохранить изменения";
       deleteBtn.style.display = "block";
     }
@@ -753,6 +755,7 @@
       const title = document.getElementById("title").value.trim();
       const price = document.getElementById("price").value.trim();
       const image = document.getElementById("image").value.trim();
+      const description = document.getElementById("description").value.trim();
 
       if (!title || !price || !image) {
         alert("Заполни все поля");
@@ -764,7 +767,7 @@
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ title, price, image })
+          body: JSON.stringify({ title, price, image, description })
         });
 
         const result = await res.json();
@@ -782,7 +785,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ title, price, image })
+        body: JSON.stringify({ title, price, image, description })
       });
 
       const result = await res.json();

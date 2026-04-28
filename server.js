@@ -235,21 +235,27 @@ db.connect((error) => {
     return;
   }
 
-  db.promise().query(`
-    CREATE TABLE IF NOT EXISTS password_resets (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
-      code_hash VARCHAR(255) NOT NULL,
-      expires_at DATETIME NOT NULL,
-      attempts INT NOT NULL DEFAULT 0,
-      used TINYINT(1) NOT NULL DEFAULT 0,
-      last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_password_resets_user
-        FOREIGN KEY (user_id) REFERENCES users(id)
-        ON DELETE CASCADE
-    )
-  `)
+  Promise.all([
+    db.promise().query(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        code_hash VARCHAR(255) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        attempts INT NOT NULL DEFAULT 0,
+        used TINYINT(1) NOT NULL DEFAULT 0,
+        last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_password_resets_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE CASCADE
+      )
+    `),
+    // db.promise().query(`
+    //   ALTER TABLE products
+    //   ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''
+    // `)
+  ])
     .then(() => {
       app.listen(port, () => {
         console.log(`Сервер запущен: http://localhost:${port}`);
@@ -259,6 +265,6 @@ db.connect((error) => {
       });
     })
     .catch((initError) => {
-      console.error("Ошибка инициализации таблицы password_resets:", initError);
+      console.error("Ошибка инициализации базы данных:", initError);
     });
 });

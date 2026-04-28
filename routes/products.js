@@ -19,6 +19,7 @@ module.exports = ({ db }) => {
       title: row.title,
       price: row.price,
       image: row.image,
+      description: row.description || "",
       rating: row.rating,
       reviews: row.reviews
     };
@@ -32,6 +33,7 @@ module.exports = ({ db }) => {
   function validateProductPayload(body) {
     const title = body.title?.trim();
     const image = body.image?.trim();
+    const description = body.description?.trim() || "";
     const price = Number(body.price);
 
     if (!title || !image || Number.isNaN(price)) {
@@ -42,7 +44,7 @@ module.exports = ({ db }) => {
       return { ok: false, error: "price должен быть больше 0" };
     }
 
-    return { ok: true, value: { title, price, image } };
+    return { ok: true, value: { title, price, image, description } };
   }
 
   async function listProducts(req, res) {
@@ -93,12 +95,12 @@ module.exports = ({ db }) => {
       return res.status(400).json({ ok: false, error: validation.error });
     }
 
-    const { title, price, image } = validation.value;
+    const { title, price, image, description } = validation.value;
 
     try {
       const [result] = await dbPromise.query(
-        "INSERT INTO products (title, price, image) VALUES (?, ?, ?)",
-        [title, price, image]
+        "INSERT INTO products (title, price, image, description) VALUES (?, ?, ?, ?)",
+        [title, price, image, description]
       );
 
       const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [result.insertId]);
@@ -126,12 +128,12 @@ module.exports = ({ db }) => {
       return res.status(400).json({ ok: false, error: validation.error });
     }
 
-    const { title, price, image } = validation.value;
+    const { title, price, image, description } = validation.value;
 
     try {
       const [result] = await dbPromise.query(
-        "UPDATE products SET title = ?, price = ?, image = ? WHERE id = ?",
-        [title, price, image, productId]
+        "UPDATE products SET title = ?, price = ?, image = ?, description = ? WHERE id = ?",
+        [title, price, image, description, productId]
       );
 
       if (result.affectedRows === 0) {
