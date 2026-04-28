@@ -341,6 +341,13 @@ body {
   gap: 12px;
 }
 
+.product_auth_note {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 .product_not_found {
   padding: 40px 28px;
   border-radius: 32px;
@@ -472,6 +479,10 @@ body {
 
   .product_detail_text {
     font-size: 16px;
+  }
+
+  .product_auth_note {
+    font-size: 13px;
   }
 
   .floating_home {

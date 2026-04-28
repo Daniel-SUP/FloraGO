@@ -296,6 +296,7 @@
     try {
       const product = await fetchProductById(productId);
       const isAdmin = currentUser.role === "admin";
+      const isAuthorized = Boolean(currentUser.username);
 
       productDetail.innerHTML = `
         <div class="product_media">
@@ -311,14 +312,23 @@
           <p class="product_detail_text">Свежая композиция, аккуратная сборка и быстрая доставка. Мы бережно подготавливаем каждый букет, чтобы он приехал красивым, свежим и действительно порадовал получателя.</p>
           <div class="product_detail_price">${product.price} Br</div>
           <div class="product_detail_actions">
-            <button class="modal_btn" type="button">Добавить в корзину</button>
-            <button class="modal_btn" type="button">Купить сейчас</button>
+            ${isAuthorized ? '<button id="add_to_cart" class="modal_btn" type="button">Добавить в корзину</button>' : '<button id="login_to_order" class="modal_btn" type="button">Войти</button>'}
+            ${isAuthorized ? '<button id="buy_now" class="modal_btn" type="button">Купить сейчас</button>' : ""}
             ${isAdmin ? '<button id="product_edit" class="modal_btn" type="button">Редактировать</button>' : ""}
           </div>
+          ${isAuthorized ? "" : '<p class="product_auth_note">Чтобы купить товар или добавить его в корзину, войдите в аккаунт.</p>'}
         </div>
       `;
 
+      const loginToOrderBtn = document.getElementById("login_to_order");
       const editBtn = document.getElementById("product_edit");
+
+      if (loginToOrderBtn) {
+        loginToOrderBtn.addEventListener("click", () => {
+          setRoute("login", { mode: "login" });
+        });
+      }
+
       if (editBtn) {
         editBtn.addEventListener("click", () => {
           setRoute("admin", { edit: product.id });
