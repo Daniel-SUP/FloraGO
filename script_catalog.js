@@ -96,6 +96,30 @@
     return res.json();
   }
 
+  async function fetchProductReviews(productId) {
+    const res = await fetch(`/products/${productId}/reviews`);
+    if (!res.ok) {
+      throw new Error("Не удалось загрузить отзывы");
+    }
+
+    return res.json();
+  }
+
+  async function createProductReview(productId, payload) {
+    const res = await fetch(`/products/${productId}/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Не удалось добавить отзыв");
+    }
+
+    return data;
+  }
+
   function sortProductsByPopularity(products) {
     return [...products].sort((a, b) => {
       const ratingDiff = Number(b.rating) - Number(a.rating);
@@ -104,6 +128,19 @@
       }
 
       return Number(b.reviews) - Number(a.reviews);
+    });
+  }
+
+  function formatReviewDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return date.toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
     });
   }
 
@@ -124,6 +161,54 @@
 
       card.addEventListener("click", () => onOpenProduct(product));
       productsContainer.appendChild(card);
+    });
+  }
+
+  function renderReviewsList(container, reviews) {
+    container.innerHTML = "";
+
+    if (!reviews.length) {
+      const emptyState = document.createElement("p");
+      emptyState.className = "reviews_empty";
+      emptyState.textContent = "Пока нет отзывов. Будьте первым, кто поделится впечатлением.";
+      container.appendChild(emptyState);
+      return;
+    }
+
+    reviews.forEach((review) => {
+      const card = document.createElement("article");
+      card.className = "review_card";
+
+      const header = document.createElement("div");
+      header.className = "review_card_header";
+
+      const author = document.createElement("strong");
+      author.className = "review_author";
+      author.textContent = review.authorName;
+
+      const meta = document.createElement("div");
+      meta.className = "review_meta";
+
+      const rating = document.createElement("span");
+      rating.className = "review_rating";
+      rating.textContent = `★ ${review.rating}/5`;
+
+      const date = document.createElement("span");
+      date.className = "review_date";
+      date.textContent = formatReviewDate(review.createdAt);
+
+      meta.appendChild(rating);
+      meta.appendChild(date);
+      header.appendChild(author);
+      header.appendChild(meta);
+
+      const text = document.createElement("p");
+      text.className = "review_text";
+      text.textContent = review.comment;
+
+      card.appendChild(header);
+      card.appendChild(text);
+      container.appendChild(card);
     });
   }
 
@@ -293,8 +378,11 @@
       return;
     }
 
-    try {
-      const product = await fetchProductById(productId);
+    async function renderProductView() {
+      const [product, reviews] = await Promise.all([
+        fetchProductById(productId),
+        fetchProductReviews(productId)
+      ]);
       const isAdmin = currentUser.role === "admin";
       const isAuthorized = Boolean(currentUser.username);
 
@@ -318,10 +406,45 @@
           </div>
           ${isAuthorized ? "" : '<p class="product_auth_note">Чтобы купить товар или добавить его в корзину, войдите в аккаунт.</p>'}
         </div>
+        <section class="reviews_section">
+          <div class="reviews_header">
+            <div>
+              <p class="section_kicker">Отзывы</p>
+              <h2 class="reviews_title">Что говорят о букете</h2>
+            </div>
+          </div>
+          ${isAuthorized ? `
+            <form id="review_form" class="review_form">
+              <label class="review_form_label" for="review_rating">Оценка</label>
+              <select id="review_rating" class="review_select" name="rating">
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+              </select>
+              <label class="review_form_label" for="review_comment">Ваш отзыв</label>
+              <textarea id="review_comment" class="review_textarea" name="comment" placeholder="Расскажите, что вам понравилось" required></textarea>
+              <div class="review_form_actions">
+                <button id="review_submit" class="modal_btn" type="submit">Оставить отзыв</button>
+                <p id="review_feedback" class="review_feedback" aria-live="polite"></p>
+              </div>
+            </form>
+          ` : '<p class="product_auth_note">Чтобы оставить отзыв, войдите в аккаунт.</p>'}
+          <div id="reviews_list" class="reviews_list"></div>
+        </section>
       `;
 
+      const reviewsList = document.getElementById("reviews_list");
       const loginToOrderBtn = document.getElementById("login_to_order");
       const editBtn = document.getElementById("product_edit");
+      const reviewForm = document.getElementById("review_form");
+      const reviewFeedback = document.getElementById("review_feedback");
+      const reviewSubmit = document.getElementById("review_submit");
+
+      if (reviewsList) {
+        renderReviewsList(reviewsList, reviews);
+      }
 
       if (loginToOrderBtn) {
         loginToOrderBtn.addEventListener("click", () => {
@@ -334,6 +457,36 @@
           setRoute("admin", { edit: product.id });
         });
       }
+
+      if (reviewForm) {
+        reviewForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const formData = new FormData(reviewForm);
+          const rating = Number(formData.get("rating"));
+          const comment = String(formData.get("comment") || "").trim();
+
+          if (!comment) {
+            reviewFeedback.textContent = "Введите текст отзыва.";
+            return;
+          }
+
+          reviewSubmit.disabled = true;
+          reviewFeedback.textContent = "Сохраняем отзыв...";
+
+          try {
+            await createProductReview(productId, { rating, comment });
+            await renderProductView();
+          } catch (submitError) {
+            reviewFeedback.textContent = submitError.message;
+            reviewSubmit.disabled = false;
+          }
+        });
+      }
+    }
+
+    try {
+      await renderProductView();
     } catch (error) {
       productDetail.innerHTML = `
         <div class="product_not_found">

@@ -237,6 +237,25 @@ db.connect((error) => {
 
   Promise.all([
     db.promise().query(`
+      CREATE TABLE IF NOT EXISTS product_reviews (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        user_id INT NULL,
+        author_name VARCHAR(255) NOT NULL,
+        rating INT NOT NULL,
+        comment TEXT NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_product_reviews_product
+          FOREIGN KEY (product_id) REFERENCES products(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk_product_reviews_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE SET NULL,
+        CONSTRAINT chk_product_reviews_rating
+          CHECK (rating BETWEEN 1 AND 5)
+      )
+    `),
+    db.promise().query(`
       CREATE TABLE IF NOT EXISTS password_resets (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,

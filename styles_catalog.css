@@ -298,6 +298,126 @@ body {
   justify-content: center;
 }
 
+.reviews_section {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.reviews_header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.reviews_title {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 34px);
+}
+
+.review_form {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+}
+
+.review_form_label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.review_select,
+.review_textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.review_textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.review_form_actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.review_feedback {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.reviews_list {
+  display: grid;
+  gap: 14px;
+}
+
+.reviews_empty {
+  margin: 0;
+  padding: 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px dashed var(--line);
+  color: var(--text-muted);
+}
+
+.review_card {
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+}
+
+.review_card_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.review_author {
+  font-size: 16px;
+}
+
+.review_meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.review_rating,
+.review_date {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--accent-ghost);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.review_text {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
 .product_detail_title {
   margin: 0 0 14px;
   font-size: clamp(34px, 5vw, 56px);
@@ -479,6 +599,24 @@ body {
 
   .product_detail_text {
     font-size: 16px;
+  }
+
+  .review_form {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .review_card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .review_card_header {
+    flex-direction: column;
+  }
+
+  .review_meta {
+    justify-content: flex-start;
   }
 
   .product_auth_note {

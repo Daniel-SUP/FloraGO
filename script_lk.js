@@ -13,7 +13,6 @@ fetch("/check_user_info", { credentials: "include" })
     document.getElementById("lk_role").textContent = data.role;
     document.getElementById("lk_phone").textContent = data.phone;
 
-
     // Если хочешь — можно менять аватар по роли
     if (data.role === "admin") document.getElementById("lk_avatar").src = "https://avatars.mds.yandex.net/i?id=10a35c04830c25eb71e1dfdc207f3574_l-3613310-images-thumbs&n=13";
   });
