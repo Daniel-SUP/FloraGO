@@ -30,6 +30,9 @@
               </div>
               <span id="catalog_count" class="section_note"></span>
             </div>
+            <div class="catalog_search">
+              <input id="product_search" class="catalog_search_input" type="search" placeholder="Поиск по названию..." autocomplete="off" />
+            </div>
             <div id="products_container" class="products_container"></div>
           </section>
         </main>
@@ -315,7 +318,10 @@
     const nicknameDiv = document.getElementById("user_login");
     const adminBtn = document.getElementById("admin_panel");
     const productsContainer = document.getElementById("products_container");
+    const searchInput = document.getElementById("product_search");
     let currentUser = { username: null, role: "user" };
+    let searchQuery = "";
+    let allProducts = [];
 
     function setGuestUI() {
       nicknameDiv.textContent = "👻 Гость";
@@ -329,29 +335,44 @@
       adminBtn.style.display = isAdmin ? "block" : "none";
     }
 
+    function getFilteredProducts() {
+      const filtered = searchQuery
+        ? allProducts.filter((product) => product.title.toLowerCase().includes(searchQuery))
+        : allProducts;
+
+      return view === "main" ? sortProductsByPopularity(filtered) : filtered;
+    }
+
+    function renderProducts() {
+      const visibleProducts = limit ? getFilteredProducts().slice(0, limit) : getFilteredProducts();
+
+      if (view === "catalog") {
+        const catalogCount = document.getElementById("catalog_count");
+        if (catalogCount) {
+          catalogCount.textContent = `${visibleProducts.length} позиций`;
+        }
+      }
+
+      if (visibleProducts.length === 0) {
+        const message = searchQuery
+          ? `По запросу «${searchQuery}» ничего не найдено.`
+          : 'Пока нет доступных букетов.';
+
+        productsContainer.innerHTML = `<p class="products_status">${message}</p>`;
+        return;
+      }
+
+      renderProductCards(productsContainer, visibleProducts, (product) => {
+        setRoute("product", { productId: product.id });
+      });
+    }
+
     async function loadProducts() {
       productsContainer.innerHTML = '<p class="products_status">Загрузка букетов...</p>';
 
       try {
-        const products = await fetchProducts();
-        const sortedProducts = view === "main" ? sortProductsByPopularity(products) : products;
-        const visibleProducts = limit ? sortedProducts.slice(0, limit) : sortedProducts;
-
-        if (view === "catalog") {
-          const catalogCount = document.getElementById("catalog_count");
-          if (catalogCount) {
-            catalogCount.textContent = `${visibleProducts.length} позиций`;
-          }
-        }
-
-        if (visibleProducts.length === 0) {
-          productsContainer.innerHTML = '<p class="products_status">Пока нет доступных букетов.</p>';
-          return;
-        }
-
-        renderProductCards(productsContainer, visibleProducts, (product) => {
-          setRoute("product", { productId: product.id });
-        });
+        allProducts = await fetchProducts();
+        renderProducts();
       } catch (err) {
         console.error("Ошибка загрузки товаров:", err);
         productsContainer.innerHTML = '<p class="products_status">Не удалось загрузить каталог.</p>';
@@ -378,6 +399,13 @@
         setRoute("lk");
       }
     });
+
+    if (searchInput) {
+      searchInput.addEventListener("input", (event) => {
+        searchQuery = event.target.value.trim().toLowerCase();
+        renderProducts();
+      });
+    }
 
     adminBtn.addEventListener("click", () => {
       setRoute("admin");
