@@ -7,6 +7,7 @@ const nodemailer = require("nodemailer");
 const createAuthRoutes = require("./routes/auth");
 const createProductRoutes = require("./routes/products");
 const createUserRoutes = require("./routes/users");
+const createAccountRoutes = require("./routes/account");
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -115,6 +116,10 @@ for (const { path, router } of createUserRoutes({ db, isValidEmail })) {
   app.use(path, router);
 }
 
+for (const { path, router } of createAccountRoutes({ db })) {
+  app.use(path, router);
+}
+
 app.get("/", (req, res) => {
   res.sendFile(`${__dirname}/main.html`);
 });
@@ -136,6 +141,14 @@ app.get("/auth/reset-password", redirectAuthorizedUserToProfile, (req, res) => {
 });
 
 app.get("/lk", (req, res) => {
+  res.sendFile(`${__dirname}/main.html`);
+});
+
+app.get("/favorites", (req, res) => {
+  res.sendFile(`${__dirname}/main.html`);
+});
+
+app.get("/cart", (req, res) => {
   res.sendFile(`${__dirname}/main.html`);
 });
 
@@ -236,6 +249,40 @@ db.connect((error) => {
   }
 
   Promise.all([
+    db.promise().query(`
+      CREATE TABLE IF NOT EXISTS favorites (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        product_id INT NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_favorites_user_product (user_id, product_id),
+        CONSTRAINT fk_favorites_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk_favorites_product
+          FOREIGN KEY (product_id) REFERENCES products(id)
+          ON DELETE CASCADE
+      )
+    `),
+    db.promise().query(`
+      CREATE TABLE IF NOT EXISTS cart_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_cart_user_product (user_id, product_id),
+        CONSTRAINT fk_cart_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE CASCADE,
+        CONSTRAINT fk_cart_product
+          FOREIGN KEY (product_id) REFERENCES products(id)
+          ON DELETE CASCADE,
+        CONSTRAINT chk_cart_quantity
+          CHECK (quantity > 0)
+      )
+    `),
     db.promise().query(`
       CREATE TABLE IF NOT EXISTS product_reviews (
         id INT AUTO_INCREMENT PRIMARY KEY,

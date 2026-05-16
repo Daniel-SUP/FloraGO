@@ -1,6 +1,6 @@
 ﻿(() => {
   const app = document.getElementById("app");
-  const allowedViews = new Set(["main", "catalog", "product", "login", "lk", "admin"]);
+  const allowedViews = new Set(["main", "catalog", "product", "login", "lk", "favorites", "cart", "admin"]);
   const catalogModule = window.FloraCatalog;
 
   const templates = {
@@ -138,7 +138,48 @@
 
         <div class="lk_buttons">
           <button id="editProfileBtn">Редактировать профиль</button>
+          <button id="goToFavoritesBtn">Избранное</button>
+          <button id="goToCartBtn">Корзина</button>
           <button id="logoutBtn" class="logout">Выйти</button>
+        </div>
+      </div>
+    `,
+    favorites: `
+      <div class="lk_container">
+        <button id="return" class="return">⬅</button>
+        <div class="lk_section standalone_section">
+          <div class="lk_section_heading">
+            <div>
+              <p class="lk_section_kicker">Избранное</p>
+              <h1 class="lk_page_title">Сохранённые букеты</h1>
+            </div>
+            <span id="favorites_count" class="lk_section_note"></span>
+          </div>
+          <div class="lk_toolbar">
+            <button id="favorites_to_profile" type="button">В личный кабинет</button>
+            <button id="favorites_to_cart" type="button">Перейти в корзину</button>
+          </div>
+          <div id="favorites_list" class="lk_items"></div>
+        </div>
+      </div>
+    `,
+    cart: `
+      <div class="lk_container">
+        <button id="return" class="return">⬅</button>
+        <div class="lk_section standalone_section">
+          <div class="lk_section_heading">
+            <div>
+              <p class="lk_section_kicker">Корзина</p>
+              <h1 class="lk_page_title">Товары к заказу</h1>
+            </div>
+            <span id="cart_total" class="lk_section_note"></span>
+          </div>
+          <div class="lk_toolbar">
+            <button id="cart_to_profile" type="button">В личный кабинет</button>
+            <button id="checkout_all_btn" type="button">Купить всё</button>
+          </div>
+          <p id="cart_feedback" class="lk_feedback" aria-live="polite"></p>
+          <div id="cart_list" class="lk_items"></div>
         </div>
       </div>
     `,
@@ -192,6 +233,8 @@
     product: "style-catalog",
     login: "style-login",
     lk: "style-lk",
+    favorites: "style-lk",
+    cart: "style-lk",
     admin: "style-admin"
   };
 
@@ -218,6 +261,14 @@
 
     if (pathname === "/lk") {
       return { view: "lk", mode: null, edit: null };
+    }
+
+    if (pathname === "/favorites") {
+      return { view: "favorites", mode: null, edit: null };
+    }
+
+    if (pathname === "/cart") {
+      return { view: "cart", mode: null, edit: null };
     }
 
     if (pathname === "/admin") {
@@ -256,6 +307,14 @@
 
     if (view === "lk") {
       return "/lk";
+    }
+
+    if (view === "favorites") {
+      return "/favorites";
+    }
+
+    if (view === "cart") {
+      return "/cart";
     }
 
     if (view === "admin") {
@@ -343,6 +402,94 @@
       phone: data.user.phone,
       role: data.user.role
     };
+  }
+
+  async function fetchFavorites() {
+    const res = await fetch("/api/account/favorites", { credentials: "include" });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось загрузить избранное");
+    }
+
+    return data.favorites;
+  }
+
+  async function removeFavorite(productId) {
+    const res = await fetch(`/api/account/favorites/${productId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось удалить из избранного");
+    }
+  }
+
+  async function fetchCart() {
+    const res = await fetch("/api/account/cart", { credentials: "include" });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось загрузить корзину");
+    }
+
+    return data;
+  }
+
+  async function updateCartItem(productId, quantity) {
+    const res = await fetch(`/api/account/cart/${productId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ quantity })
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось обновить корзину");
+    }
+  }
+
+  async function removeCartItem(productId) {
+    const res = await fetch(`/api/account/cart/${productId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось удалить товар из корзины");
+    }
+  }
+
+  async function checkoutCart() {
+    const res = await fetch("/api/account/cart/checkout", {
+      method: "POST",
+      credentials: "include"
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось оформить корзину");
+    }
+
+    return data;
+  }
+
+  async function checkoutCartItem(productId) {
+    const res = await fetch(`/api/account/cart/${productId}/checkout`, {
+      method: "POST",
+      credentials: "include"
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось оформить товар");
+    }
+
+    return data;
   }
 
   async function initLoginView(route) {
@@ -558,6 +705,14 @@
       setRoute("main", { edit: null });
     });
 
+    document.getElementById("goToFavoritesBtn").addEventListener("click", () => {
+      setRoute("favorites");
+    });
+
+    document.getElementById("goToCartBtn").addEventListener("click", () => {
+      setRoute("cart");
+    });
+
     let editMode = false;
 
     document.getElementById("editProfileBtn").addEventListener("click", async () => {
@@ -628,6 +783,198 @@
       btn.textContent = "Редактировать профиль";
       editMode = false;
     });
+  }
+
+  async function initFavoritesView() {
+    const data = await fetchUserInfo();
+    if (!data.username) {
+      setRoute("login", {}, true);
+      return;
+    }
+
+    const favoritesList = document.getElementById("favorites_list");
+    const favoritesCount = document.getElementById("favorites_count");
+
+    document.getElementById("return").addEventListener("click", () => {
+      setRoute("lk");
+    });
+
+    document.getElementById("favorites_to_profile").addEventListener("click", () => {
+      setRoute("lk");
+    });
+
+    document.getElementById("favorites_to_cart").addEventListener("click", () => {
+      setRoute("cart");
+    });
+
+    function renderFavorites(favorites) {
+      favoritesCount.textContent = `${favorites.length} позиций`;
+      favoritesList.innerHTML = "";
+
+      if (favorites.length === 0) {
+        favoritesList.innerHTML = '<p class="lk_empty">В избранном пока пусто.</p>';
+        return;
+      }
+
+      favorites.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "lk_item_card";
+        card.innerHTML = `
+          <img class="lk_item_image" src="${item.product.image}" alt="${item.product.title}">
+          <div class="lk_item_body">
+            <h3 class="lk_item_title">${item.product.title}</h3>
+            <p class="lk_item_meta">★ ${item.product.rating} • ${item.product.reviews} отзывов</p>
+            <p class="lk_item_price">${item.product.price} Br</p>
+            <div class="lk_item_actions">
+              <button class="lk_open_product" type="button">Открыть товар</button>
+              <button class="lk_remove_item logout" type="button">Убрать</button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector(".lk_open_product").addEventListener("click", () => {
+          setRoute("product", { productId: item.product.id });
+        });
+
+        card.querySelector(".lk_remove_item").addEventListener("click", async () => {
+          try {
+            await removeFavorite(item.product.id);
+            await loadFavorites();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+
+        favoritesList.appendChild(card);
+      });
+    }
+
+    async function loadFavorites() {
+      favoritesList.innerHTML = '<p class="lk_empty">Загрузка избранного...</p>';
+
+      try {
+        const favorites = await fetchFavorites();
+        renderFavorites(favorites);
+      } catch (error) {
+        favoritesList.innerHTML = `<p class="lk_empty">${error.message}</p>`;
+      }
+    }
+
+    await loadFavorites();
+  }
+
+  async function initCartView() {
+    const data = await fetchUserInfo();
+    if (!data.username) {
+      setRoute("login", {}, true);
+      return;
+    }
+
+    const cartList = document.getElementById("cart_list");
+    const cartTotal = document.getElementById("cart_total");
+    const checkoutAllBtn = document.getElementById("checkout_all_btn");
+    const cartFeedback = document.getElementById("cart_feedback");
+
+    document.getElementById("return").addEventListener("click", () => {
+      setRoute("lk");
+    });
+
+    document.getElementById("cart_to_profile").addEventListener("click", () => {
+      setRoute("lk");
+    });
+
+    function renderCart(cart) {
+      cartTotal.textContent = `Итого: ${cart.total} Br`;
+      cartList.innerHTML = "";
+      checkoutAllBtn.disabled = cart.items.length === 0;
+
+      if (cart.items.length === 0) {
+        cartList.innerHTML = '<p class="lk_empty">Корзина пока пуста.</p>';
+        return;
+      }
+
+      cart.items.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "lk_item_card";
+        card.innerHTML = `
+          <img class="lk_item_image" src="${item.product.image}" alt="${item.product.title}">
+          <div class="lk_item_body">
+            <h3 class="lk_item_title">${item.product.title}</h3>
+            <p class="lk_item_meta">Цена за 1 шт: ${item.product.price} Br</p>
+            <div class="lk_quantity_row">
+              <label for="cart_qty_${item.product.id}">Количество</label>
+              <input id="cart_qty_${item.product.id}" class="lk_qty_input" type="number" min="1" value="${item.quantity}">
+            </div>
+            <p class="lk_item_price">Сумма: ${item.lineTotal} Br</p>
+            <div class="lk_item_actions">
+              <button class="lk_open_product" type="button">Открыть товар</button>
+              <button class="lk_save_qty" type="button">Сохранить</button>
+              <button class="lk_buy_item" type="button">Купить этот товар</button>
+              <button class="lk_remove_item logout" type="button">Удалить</button>
+            </div>
+          </div>
+        `;
+
+        const quantityInput = card.querySelector(".lk_qty_input");
+
+        card.querySelector(".lk_open_product").addEventListener("click", () => {
+          setRoute("product", { productId: item.product.id });
+        });
+
+        card.querySelector(".lk_save_qty").addEventListener("click", async () => {
+          try {
+            await updateCartItem(item.product.id, Number(quantityInput.value));
+            await loadCart();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+
+        card.querySelector(".lk_buy_item").addEventListener("click", async () => {
+          try {
+            const result = await checkoutCartItem(item.product.id);
+            cartFeedback.textContent = `${result.purchased.title} оформлен(а).`;
+            await loadCart();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+
+        card.querySelector(".lk_remove_item").addEventListener("click", async () => {
+          try {
+            await removeCartItem(item.product.id);
+            await loadCart();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+
+        cartList.appendChild(card);
+      });
+    }
+
+    async function loadCart() {
+      cartList.innerHTML = '<p class="lk_empty">Загрузка корзины...</p>';
+
+      try {
+        const cart = await fetchCart();
+        renderCart(cart);
+      } catch (error) {
+        cartList.innerHTML = `<p class="lk_empty">${error.message}</p>`;
+      }
+    }
+
+    checkoutAllBtn.addEventListener("click", async () => {
+      try {
+        const result = await checkoutCart();
+        cartFeedback.textContent = `Оформлено товаров: ${result.purchased.length}.`;
+        await loadCart();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    await loadCart();
   }
 
   async function initAdminView(route) {
@@ -909,6 +1256,8 @@
     if (route.view === "product") await catalogModule.initProductView(route, catalogDeps);
     if (route.view === "login") await initLoginView(route);
     if (route.view === "lk") await initLkView();
+    if (route.view === "favorites") await initFavoritesView();
+    if (route.view === "cart") await initCartView();
     if (route.view === "admin") await initAdminView(route);
   }
 

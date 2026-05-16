@@ -461,6 +461,24 @@ body {
   gap: 12px;
 }
 
+.secondary_action {
+  color: var(--accent-strong);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.secondary_action:hover {
+  box-shadow: var(--shadow);
+}
+
+.product_action_feedback {
+  margin: 14px 0 0;
+  min-height: 21px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
 .product_auth_note {
   margin: 14px 0 0;
   font-size: 14px;

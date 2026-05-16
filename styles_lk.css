@@ -59,6 +59,132 @@
   gap: 12px;
 }
 
+.lk_section {
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.standalone_section {
+  margin-top: 20px;
+}
+
+.lk_section_heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.lk_section_heading h2 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 32px);
+}
+
+.lk_page_title {
+  margin: 0;
+  font-size: clamp(28px, 4.8vw, 38px);
+}
+
+.lk_section_kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent-strong);
+}
+
+.lk_section_note {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.lk_toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.lk_items {
+  display: grid;
+  gap: 14px;
+}
+
+.lk_item_card {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid var(--line);
+}
+
+.lk_item_image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.lk_item_body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lk_item_title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.lk_item_meta {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.lk_item_price {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent-strong);
+}
+
+.lk_item_actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lk_quantity_row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lk_qty_input {
+  width: 110px;
+}
+
+.lk_empty {
+  margin: 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px dashed var(--line);
+  color: var(--text-muted);
+}
+
+.lk_feedback {
+  margin: 0 0 14px;
+  min-height: 22px;
+  color: var(--text-muted);
+}
+
 .return {
   width: 52px;
   height: 52px;
@@ -88,6 +214,23 @@
   .lk_profile {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .lk_section_heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lk_toolbar {
+    flex-direction: column;
+  }
+
+  .lk_item_card {
+    grid-template-columns: 1fr;
+  }
+
+  .lk_item_image {
+    height: 220px;
   }
 
   .lk_avatar {

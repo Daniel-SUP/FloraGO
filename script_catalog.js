@@ -120,6 +120,63 @@
     return data;
   }
 
+  async function fetchProductState(productId) {
+    const res = await fetch(`/api/account/products/${productId}/state`, {
+      credentials: "include"
+    });
+
+    if (res.status === 401) {
+      return { isFavorite: false, cartQuantity: 0 };
+    }
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось получить состояние товара");
+    }
+
+    return data.state;
+  }
+
+  async function addToCart(productId, quantity = 1) {
+    const res = await fetch("/api/account/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ productId, quantity })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось добавить в корзину");
+    }
+  }
+
+  async function addToFavorites(productId) {
+    const res = await fetch("/api/account/favorites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ productId })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось добавить в избранное");
+    }
+  }
+
+  async function removeFromFavorites(productId) {
+    const res = await fetch(`/api/account/favorites/${productId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось удалить из избранного");
+    }
+  }
+
   function sortProductsByPopularity(products) {
     return [...products].sort((a, b) => {
       const ratingDiff = Number(b.rating) - Number(a.rating);
@@ -385,6 +442,9 @@
       ]);
       const isAdmin = currentUser.role === "admin";
       const isAuthorized = Boolean(currentUser.username);
+      const productState = isAuthorized
+        ? await fetchProductState(productId)
+        : { isFavorite: false, cartQuantity: 0 };
 
       productDetail.innerHTML = `
         <div class="product_media">
@@ -400,11 +460,13 @@
           <p class="product_detail_text">${product.description || "Свежая композиция, аккуратная сборка и быстрая доставка. Мы бережно подготавливаем каждый букет, чтобы он приехал красивым, свежим и действительно порадовал получателя."}</p>
           <div class="product_detail_price">${product.price} Br</div>
           <div class="product_detail_actions">
-            ${isAuthorized ? '<button id="add_to_cart" class="modal_btn" type="button">Добавить в корзину</button>' : '<button id="login_to_order" class="modal_btn" type="button">Войти</button>'}
+            ${isAuthorized ? `<button id="add_to_cart" class="modal_btn" type="button">${productState.cartQuantity > 0 ? `В корзине: ${productState.cartQuantity}` : "Добавить в корзину"}</button>` : '<button id="login_to_order" class="modal_btn" type="button">Войти</button>'}
+            ${isAuthorized ? `<button id="toggle_favorite" class="modal_btn secondary_action" type="button">${productState.isFavorite ? "Убрать из избранного" : "В избранное"}</button>` : ""}
             ${isAuthorized ? '<button id="buy_now" class="modal_btn" type="button">Купить сейчас</button>' : ""}
             ${isAdmin ? '<button id="product_edit" class="modal_btn" type="button">Редактировать</button>' : ""}
           </div>
           ${isAuthorized ? "" : '<p class="product_auth_note">Чтобы купить товар или добавить его в корзину, войдите в аккаунт.</p>'}
+          <p id="product_action_feedback" class="product_action_feedback" aria-live="polite"></p>
         </div>
         <section class="reviews_section">
           <div class="reviews_header">
@@ -438,6 +500,10 @@
       const reviewsList = document.getElementById("reviews_list");
       const loginToOrderBtn = document.getElementById("login_to_order");
       const editBtn = document.getElementById("product_edit");
+      const addToCartBtn = document.getElementById("add_to_cart");
+      const buyNowBtn = document.getElementById("buy_now");
+      const toggleFavoriteBtn = document.getElementById("toggle_favorite");
+      const actionFeedback = document.getElementById("product_action_feedback");
       const reviewForm = document.getElementById("review_form");
       const reviewFeedback = document.getElementById("review_feedback");
       const reviewSubmit = document.getElementById("review_submit");
@@ -455,6 +521,80 @@
       if (editBtn) {
         editBtn.addEventListener("click", () => {
           setRoute("admin", { edit: product.id });
+        });
+      }
+
+      if (addToCartBtn) {
+        addToCartBtn.addEventListener("click", async () => {
+          addToCartBtn.disabled = true;
+          if (actionFeedback) {
+            actionFeedback.textContent = "Добавляем товар в корзину...";
+          }
+
+          try {
+            await addToCart(product.id, 1);
+            await renderProductView();
+            const refreshedFeedback = document.getElementById("product_action_feedback");
+            if (refreshedFeedback) {
+              refreshedFeedback.textContent = "Товар добавлен в корзину.";
+            }
+          } catch (error) {
+            if (actionFeedback) {
+              actionFeedback.textContent = error.message;
+            }
+            addToCartBtn.disabled = false;
+          }
+        });
+      }
+
+      if (buyNowBtn) {
+        buyNowBtn.addEventListener("click", async () => {
+          buyNowBtn.disabled = true;
+          if (actionFeedback) {
+            actionFeedback.textContent = "Добавляем товар в корзину...";
+          }
+
+          try {
+            await addToCart(product.id, 1);
+            setRoute("lk");
+          } catch (error) {
+            if (actionFeedback) {
+              actionFeedback.textContent = error.message;
+            }
+            buyNowBtn.disabled = false;
+          }
+        });
+      }
+
+      if (toggleFavoriteBtn) {
+        toggleFavoriteBtn.addEventListener("click", async () => {
+          toggleFavoriteBtn.disabled = true;
+          if (actionFeedback) {
+            actionFeedback.textContent = productState.isFavorite
+              ? "Удаляем из избранного..."
+              : "Добавляем в избранное...";
+          }
+
+          try {
+            if (productState.isFavorite) {
+              await removeFromFavorites(product.id);
+            } else {
+              await addToFavorites(product.id);
+            }
+
+            await renderProductView();
+            const refreshedFeedback = document.getElementById("product_action_feedback");
+            if (refreshedFeedback) {
+              refreshedFeedback.textContent = productState.isFavorite
+                ? "Товар удалён из избранного."
+                : "Товар добавлен в избранное.";
+            }
+          } catch (error) {
+            if (actionFeedback) {
+              actionFeedback.textContent = error.message;
+            }
+            toggleFavoriteBtn.disabled = false;
+          }
         });
       }
 
