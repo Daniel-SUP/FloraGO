@@ -14,6 +14,8 @@
 
         <button id="theme_change" class="theme_change">🌗</button>
         <button id="user_login" class="user_login" data-tooltip="Войти/Зарегистрироваться"></button>
+        <button id="favorites_header" class="header_quick_action" type="button" aria-label="Избранное">❤</button>
+        <button id="cart_header" class="header_quick_action" type="button" aria-label="Корзина">🛒</button>
         <button id="admin_panel" class="admin_panel" style="display:none;">⚙️</button>
 
         <main class="main_content">
@@ -138,8 +140,6 @@
 
         <div class="lk_buttons">
           <button id="editProfileBtn">Редактировать профиль</button>
-          <button id="goToFavoritesBtn">Избранное</button>
-          <button id="goToCartBtn">Корзина</button>
           <button id="logoutBtn" class="logout">Выйти</button>
         </div>
       </div>
@@ -154,10 +154,6 @@
               <h1 class="lk_page_title">Сохранённые букеты</h1>
             </div>
             <span id="favorites_count" class="lk_section_note"></span>
-          </div>
-          <div class="lk_toolbar">
-            <button id="favorites_to_profile" type="button">В личный кабинет</button>
-            <button id="favorites_to_cart" type="button">Перейти в корзину</button>
           </div>
           <div id="favorites_list" class="lk_items"></div>
         </div>
@@ -175,7 +171,6 @@
             <span id="cart_total" class="lk_section_note"></span>
           </div>
           <div class="lk_toolbar">
-            <button id="cart_to_profile" type="button">В личный кабинет</button>
             <button id="checkout_all_btn" type="button">Купить всё</button>
           </div>
           <p id="cart_feedback" class="lk_feedback" aria-live="polite"></p>
@@ -677,6 +672,23 @@
     });
   }
 
+  function bindHeaderQuickActions() {
+    const favoritesHeader = document.getElementById("favorites_header");
+    const cartHeader = document.getElementById("cart_header");
+
+    if (favoritesHeader) {
+      favoritesHeader.addEventListener("click", () => {
+        setRoute("favorites");
+      });
+    }
+
+    if (cartHeader) {
+      cartHeader.addEventListener("click", () => {
+        setRoute("cart");
+      });
+    }
+  }
+
   async function initLkView() {
     const data = await fetchUserInfo();
     if (!data.username) {
@@ -703,14 +715,6 @@
 
     document.getElementById("return").addEventListener("click", () => {
       setRoute("main", { edit: null });
-    });
-
-    document.getElementById("goToFavoritesBtn").addEventListener("click", () => {
-      setRoute("favorites");
-    });
-
-    document.getElementById("goToCartBtn").addEventListener("click", () => {
-      setRoute("cart");
     });
 
     let editMode = false;
@@ -796,15 +800,7 @@
     const favoritesCount = document.getElementById("favorites_count");
 
     document.getElementById("return").addEventListener("click", () => {
-      setRoute("lk");
-    });
-
-    document.getElementById("favorites_to_profile").addEventListener("click", () => {
-      setRoute("lk");
-    });
-
-    document.getElementById("favorites_to_cart").addEventListener("click", () => {
-      setRoute("cart");
+      setRoute("main");
     });
 
     function renderFavorites(favorites) {
@@ -876,11 +872,7 @@
     const cartFeedback = document.getElementById("cart_feedback");
 
     document.getElementById("return").addEventListener("click", () => {
-      setRoute("lk");
-    });
-
-    document.getElementById("cart_to_profile").addEventListener("click", () => {
-      setRoute("lk");
+      setRoute("main");
     });
 
     function renderCart(cart) {
@@ -1248,6 +1240,7 @@
     app.innerHTML = templates[route.view];
 
     bindThemeButton();
+    bindHeaderQuickActions();
 
     const catalogDeps = { fetchUserInfo, setRoute };
 

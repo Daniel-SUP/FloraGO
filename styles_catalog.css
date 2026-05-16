@@ -163,6 +163,23 @@ body {
   min-width: 136px;
 }
 
+.header_quick_action {
+  position: fixed;
+  top: 18px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  z-index: 1100;
+}
+
+#favorites_header {
+  left: 164px;
+}
+
+#cart_header {
+  left: 224px;
+}
+
 .user_login::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -577,6 +594,20 @@ body {
     border-radius: 50%;
     overflow: hidden;
     text-indent: -9999px;
+  }
+
+  .header_quick_action {
+    top: 12px;
+    width: 44px;
+    height: 44px;
+  }
+
+  #favorites_header {
+    left: 64px;
+  }
+
+  #cart_header {
+    left: 116px;
   }
 
   .user_login::before {

@@ -11,6 +11,8 @@
         <button id="floating_home" class="floating_home" type="button">Главная</button>
         <button id="theme_change" class="theme_change">🌗</button>
         <button id="user_login" class="user_login" data-tooltip="Войти/Зарегистрироваться"></button>
+        <button id="favorites_header" class="header_quick_action" type="button" aria-label="Избранное">❤</button>
+        <button id="cart_header" class="header_quick_action" type="button" aria-label="Корзина">🛒</button>
         <button id="admin_panel" class="admin_panel" style="display:none;">⚙️</button>
 
         <main class="main_content">
@@ -54,6 +56,8 @@
 
         <button id="theme_change" class="theme_change">🌗</button>
         <button id="user_login" class="user_login" data-tooltip="Войти/Зарегистрироваться"></button>
+        <button id="favorites_header" class="header_quick_action" type="button" aria-label="Избранное">❤</button>
+        <button id="cart_header" class="header_quick_action" type="button" aria-label="Корзина">🛒</button>
         <button id="admin_panel" class="admin_panel" style="display:none;">⚙️</button>
 
         <main class="main_content">
@@ -273,6 +277,8 @@
     const homeLogo = document.getElementById("home_logo");
     const heroCatalog = document.getElementById("hero_catalog");
     const floatingHome = document.getElementById("floating_home");
+    const favoritesHeader = document.getElementById("favorites_header");
+    const cartHeader = document.getElementById("cart_header");
 
     if (homeLogo) {
       homeLogo.addEventListener("click", () => {
@@ -289,6 +295,18 @@
     if (floatingHome) {
       floatingHome.addEventListener("click", () => {
         setRoute("main");
+      });
+    }
+
+    if (favoritesHeader) {
+      favoritesHeader.addEventListener("click", () => {
+        setRoute("favorites");
+      });
+    }
+
+    if (cartHeader) {
+      cartHeader.addEventListener("click", () => {
+        setRoute("cart");
       });
     }
   }
