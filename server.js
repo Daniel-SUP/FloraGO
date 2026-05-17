@@ -316,11 +316,6 @@ db.connect((error) => {
           FOREIGN KEY (user_id) REFERENCES users(id)
           ON DELETE CASCADE
       )
-    `),
-    db.promise().query(`
-      ALTER TABLE products
-      ADD COLUMN IF NOT EXISTS category VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS flower_type VARCHAR(100)
     `)
   ])
     .then(() => {

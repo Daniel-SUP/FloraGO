@@ -577,7 +577,7 @@
           <img src="${product.image}" class="product_detail_image" alt="${product.title}">
         </div>
         <div class="product_content">
-          <p class="eyebrow">Букет FloraGo</p>
+          <p class="eyebrow">${product.category === 'single' ? 'Цветы FloraGo' : 'Букет FloraGo'}</p>
           <h1 class="product_detail_title">${product.title}</h1>
           <div class="product_detail_meta">
             <span class="product_detail_rating">★ ${product.rating} (${product.reviews} отзывов)</span>

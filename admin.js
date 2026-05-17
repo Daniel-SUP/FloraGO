@@ -6,6 +6,9 @@ btn.addEventListener("click", async () => {
   const title = document.getElementById("title").value;
   const price = document.getElementById("price").value;
   const image = document.getElementById("image").value;
+  const description = document.getElementById("description").value;
+  const category = document.getElementById("category").value;
+  const flowerType = document.getElementById("flowerType").value;
 
   if (!title || !price || !image) {
     alert("Заполни все поля");
@@ -18,7 +21,7 @@ btn.addEventListener("click", async () => {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ title, price, image })
+      body: JSON.stringify({ title, price, image, description, category, flowerType })
     });
 
     const data = await res.json();
@@ -37,7 +40,7 @@ btn.addEventListener("click", async () => {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ title, price, image })
+    body: JSON.stringify({ title, price, image, description, category, flowerType })
   });
 
   const data = await res.json();
@@ -63,6 +66,9 @@ async function loadProductForEdit(id) {
   document.getElementById("title").value = product.title;
   document.getElementById("price").value = product.price;
   document.getElementById("image").value = product.image;
+  document.getElementById("description").value = product.description || "";
+  document.getElementById("category").value = product.category || "";
+  document.getElementById("flowerType").value = product.flowerType || "";
 
   btn.textContent = "Сохранить изменения";
   // показываем кнопку удаления
