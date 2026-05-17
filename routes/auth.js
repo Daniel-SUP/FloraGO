@@ -49,7 +49,7 @@ module.exports = ({ db, isValidEmail, mailer }) => {
   async function registerUser(req) {
     const login = req.body.login?.trim();
     const email = req.body.email?.trim().toLowerCase();
-    const password = req.body.password;
+    const password = String(req.body.password || "").trim();
     const phone = req.body.phone?.trim();
 
     if (!login) throw createHttpError(400, "Логин обязателен");
@@ -58,6 +58,10 @@ module.exports = ({ db, isValidEmail, mailer }) => {
     if (!phone) throw createHttpError(400, "Телефон обязателен");
     if (!isValidEmail(email)) throw createHttpError(400, "Некорректный email");
     if (password.length < 6) throw createHttpError(400, "Пароль должен быть не менее 6 символов");
+    if (!/\d/.test(password)) throw createHttpError(400, "Пароль должен содержать цифры");
+    if (!/[a-z]/i.test(password)) throw createHttpError(400, "Пароль должен содержать буквы");
+    if (!/[A-Z]/.test(password)) throw createHttpError(400, "Пароль должен содержать хотя бы одну заглавную букву");
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) throw createHttpError(400, "Пароль должен содержать спецсимвол (!@#$%^&* и т.д.)");
     if (login.length < 3) throw createHttpError(400, "Логин должен быть не короче 3 символов");
     if (phone.includes("+")) throw createHttpError(400, "Укажите номер телефона без +");
     if (!/^\d+$/.test(phone)) throw createHttpError(400, "Номер телефона должен содержать только цифры");
