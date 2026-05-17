@@ -33,6 +33,19 @@
             <div class="catalog_search">
               <input id="product_search" class="catalog_search_input" type="search" placeholder="Поиск по названию..." autocomplete="off" />
             </div>
+
+            <div class="catalog_filters">
+              <div class="filter_group">
+                <h3>Категория</h3>
+                <label><input type="checkbox" class="filter_category" value="bouquets"> Букеты</label>
+                <label><input type="checkbox" class="filter_category" value="single"> Поштучно</label>
+              </div>
+              <div class="filter_group">
+                <h3>Тип цветов</h3>
+                <div id="flower_type_filters"></div>
+              </div>
+            </div>
+
             <div id="products_container" class="products_container"></div>
           </section>
         </main>
@@ -319,9 +332,12 @@
     const adminBtn = document.getElementById("admin_panel");
     const productsContainer = document.getElementById("products_container");
     const searchInput = document.getElementById("product_search");
+    const flowerTypeFiltersDiv = document.getElementById("flower_type_filters");
     let currentUser = { username: null, role: "user" };
     let searchQuery = "";
     let allProducts = [];
+    let selectedCategories = new Set();
+    let selectedFlowerTypes = new Set();
 
     function setGuestUI() {
       nicknameDiv.textContent = "👻 Гость";
@@ -335,10 +351,59 @@
       adminBtn.style.display = isAdmin ? "block" : "none";
     }
 
+    function getUniqueFlowerTypes() {
+      const types = new Set();
+      allProducts.forEach((product) => {
+        if (product.flowerType) {
+          types.add(product.flowerType);
+        }
+      });
+      return Array.from(types).sort();
+    }
+
+    function renderFlowerTypeFilters() {
+      if (!flowerTypeFiltersDiv) return;
+
+      flowerTypeFiltersDiv.innerHTML = "";
+      const flowerTypes = getUniqueFlowerTypes();
+
+      if (flowerTypes.length === 0) {
+        flowerTypeFiltersDiv.innerHTML = "<p style='font-size: 0.9em; color: #999;'>Нет доступных типов</p>";
+        return;
+      }
+
+      flowerTypes.forEach((type) => {
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "filter_flower_type";
+        checkbox.value = type;
+        checkbox.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            selectedFlowerTypes.add(type);
+          } else {
+            selectedFlowerTypes.delete(type);
+          }
+          renderProducts();
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(` ${type}`));
+        flowerTypeFiltersDiv.appendChild(label);
+      });
+    }
+
     function getFilteredProducts() {
-      const filtered = searchQuery
+      let filtered = searchQuery
         ? allProducts.filter((product) => product.title.toLowerCase().includes(searchQuery))
         : allProducts;
+
+      if (selectedCategories.size > 0) {
+        filtered = filtered.filter((product) => selectedCategories.has(product.category));
+      }
+
+      if (selectedFlowerTypes.size > 0) {
+        filtered = filtered.filter((product) => selectedFlowerTypes.has(product.flowerType));
+      }
 
       return view === "main" ? sortProductsByPopularity(filtered) : filtered;
     }
@@ -354,8 +419,8 @@
       }
 
       if (visibleProducts.length === 0) {
-        const message = searchQuery
-          ? `По запросу «${searchQuery}» ничего не найдено.`
+        const message = searchQuery || selectedCategories.size > 0 || selectedFlowerTypes.size > 0
+          ? `По вашим критериям ничего не найдено.`
           : 'Пока нет доступных букетов.';
 
         productsContainer.innerHTML = `<p class="products_status">${message}</p>`;
@@ -372,6 +437,7 @@
 
       try {
         allProducts = await fetchProducts();
+        renderFlowerTypeFilters();
         renderProducts();
       } catch (err) {
         console.error("Ошибка загрузки товаров:", err);
@@ -404,6 +470,20 @@
       searchInput.addEventListener("input", (event) => {
         searchQuery = event.target.value.trim().toLowerCase();
         renderProducts();
+      });
+    }
+
+    if (view === "catalog") {
+      const categoryFilters = document.querySelectorAll(".filter_category");
+      categoryFilters.forEach((checkbox) => {
+        checkbox.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            selectedCategories.add(e.target.value);
+          } else {
+            selectedCategories.delete(e.target.value);
+          }
+          renderProducts();
+        });
       });
     }
 

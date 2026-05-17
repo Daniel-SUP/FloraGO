@@ -29,7 +29,9 @@ module.exports = ({ db }) => {
       image: row.image,
       description: row.description || "",
       rating: row.rating,
-      reviews: row.reviews
+      reviews: row.reviews,
+      category: row.category || "",
+      flowerType: row.flower_type || ""
     };
   }
 
@@ -55,6 +57,8 @@ module.exports = ({ db }) => {
     const image = body.image?.trim();
     const description = body.description?.trim() || "";
     const price = Number(body.price);
+    const category = body.category?.trim() || "";
+    const flowerType = body.flowerType?.trim() || "";
 
     if (!title || !image || Number.isNaN(price)) {
       return { ok: false, error: "title, price и image обязательны" };
@@ -64,7 +68,7 @@ module.exports = ({ db }) => {
       return { ok: false, error: "price должен быть больше 0" };
     }
 
-    return { ok: true, value: { title, price, image, description } };
+    return { ok: true, value: { title, price, image, description, category, flowerType } };
   }
 
   function validateReviewPayload(body) {
@@ -157,12 +161,12 @@ module.exports = ({ db }) => {
       return res.status(400).json({ ok: false, error: validation.error });
     }
 
-    const { title, price, image, description } = validation.value;
+    const { title, price, image, description, category, flowerType } = validation.value;
 
     try {
       const [result] = await dbPromise.query(
-        "INSERT INTO products (title, price, image, description) VALUES (?, ?, ?, ?)",
-        [title, price, image, description]
+        "INSERT INTO products (title, price, image, description, category, flower_type) VALUES (?, ?, ?, ?, ?, ?)",
+        [title, price, image, description, category, flowerType]
       );
 
       const [rows] = await dbPromise.query("SELECT * FROM products WHERE id = ?", [result.insertId]);
@@ -278,12 +282,12 @@ module.exports = ({ db }) => {
       return res.status(400).json({ ok: false, error: validation.error });
     }
 
-    const { title, price, image, description } = validation.value;
+    const { title, price, image, description, category, flowerType } = validation.value;
 
     try {
       const [result] = await dbPromise.query(
-        "UPDATE products SET title = ?, price = ?, image = ?, description = ? WHERE id = ?",
-        [title, price, image, description, productId]
+        "UPDATE products SET title = ?, price = ?, image = ?, description = ?, category = ?, flower_type = ? WHERE id = ?",
+        [title, price, image, description, category, flowerType, productId]
       );
 
       if (result.affectedRows === 0) {

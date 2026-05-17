@@ -317,10 +317,11 @@ db.connect((error) => {
           ON DELETE CASCADE
       )
     `),
-    // db.promise().query(`
-    //   ALTER TABLE products
-    //   ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''
-    // `)
+    db.promise().query(`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS category VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS flower_type VARCHAR(100)
+    `)
   ])
     .then(() => {
       app.listen(port, () => {

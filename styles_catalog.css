@@ -148,6 +148,47 @@ body {
   background: var(--surface);
 }
 
+.catalog_filters {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 28px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  flex-wrap: wrap;
+}
+
+.filter_group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter_group h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-strong);
+}
+
+.filter_group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.filter_group input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
 .catalog_search_input:focus {
   outline: none;
   border-color: var(--accent-strong);

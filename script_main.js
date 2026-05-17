@@ -192,6 +192,14 @@
             <input type="text" id="image" placeholder="URL изображения" />
             <textarea id="description" placeholder="Описание букета"></textarea>
 
+            <select id="category">
+              <option value="">-- Выберите категорию --</option>
+              <option value="bouquets">Букеты</option>
+              <option value="single">Поштучно</option>
+            </select>
+
+            <input type="text" id="flowerType" placeholder="Тип цветов (роза, тюльпан, и т.д.)" />
+
             <button id="addProductBtn">Добавить товар</button>
             <button id="deleteProductBtn">Удалить товар</button>
           </section>
@@ -1082,6 +1090,8 @@
       document.getElementById("price").value = product.price;
       document.getElementById("image").value = product.image;
       document.getElementById("description").value = product.description || "";
+      document.getElementById("category").value = product.category || "";
+      document.getElementById("flowerType").value = product.flowerType || "";
       btn.textContent = "Сохранить изменения";
       deleteBtn.style.display = "block";
     }
@@ -1095,6 +1105,8 @@
       const price = document.getElementById("price").value.trim();
       const image = document.getElementById("image").value.trim();
       const description = document.getElementById("description").value.trim();
+      const category = document.getElementById("category").value;
+      const flowerType = document.getElementById("flowerType").value.trim();
 
       if (!title || !price || !image) {
         alert("Заполни все поля");
@@ -1106,7 +1118,7 @@
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ title, price, image, description })
+          body: JSON.stringify({ title, price, image, description, category, flowerType })
         });
 
         const result = await res.json();
@@ -1124,7 +1136,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ title, price, image, description })
+        body: JSON.stringify({ title, price, image, description, category, flowerType })
       });
 
       const result = await res.json();
