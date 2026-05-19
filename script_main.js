@@ -1,6 +1,6 @@
 ﻿(() => {
   const app = document.getElementById("app");
-  const allowedViews = new Set(["main", "catalog", "product", "login", "lk", "favorites", "cart", "admin"]);
+  const allowedViews = new Set(["main", "catalog", "product", "login", "lk", "favorites", "cart", "admin", "error404"]);
   const catalogModule = window.FloraCatalog;
 
   const templates = {
@@ -227,7 +227,14 @@
           </section>
         </div>
       </div>
-    `
+    `,
+    error404: `
+    <div class="lk_container" style="text-align: center; padding: 100px 20px;">
+      <h1 style="font-size: 72px; margin-bottom: 10px; color: #cc6666;">404</h1>
+      <p style="font-size: 20px; margin-bottom: 30px;">Упс! Страница, которую вы ищете, не существует или была перемещена.</p>
+      <button id="back_to_main" class="section_cta" type="button" style="padding: 12px 24px;">На главную</button>
+    </div>
+  `
   };
 
   const styleMap = {
@@ -238,7 +245,8 @@
     lk: "style-lk",
     favorites: "style-lk",
     cart: "style-lk",
-    admin: "style-admin"
+    admin: "style-admin",
+    error404: "style-lk"
   };
 
   function getRoute() {
@@ -283,15 +291,25 @@
     }
 
     const productMatch = pathname.match(/^\/catalog\/(\d+)$/);
-    if (productMatch) {
-      return { view: "product", mode: null, edit: null, productId: Number(productMatch[1]) };
-    }
+  if (productMatch) {
+    return { view: "product", mode: null, edit: null, productId: Number(productMatch[1]) };
+  }
 
-    const requestedView = params.get("view") || "main";
-    const view = allowedViews.has(requestedView) ? requestedView : "main";
-    const mode = params.get("mode");
+  // Сюда попадаем, если pathname не совпал ни с одним легальным статическим роутом
+  const knownPathnames = new Set([
+    "/", "/auth/register", "/auth/login", "/auth/forgot-password", 
+    "/auth/reset-password", "/lk", "/favorites", "/cart", "/admin", "/catalog"
+  ]);
 
-    return { view, mode, edit, productId: null };
+  if (!knownPathnames.has(pathname)) {
+    return { view: "error404", mode: null, edit: null, productId: null };
+  }
+
+  const requestedView = params.get("view") || "main";
+  const view = allowedViews.has(requestedView) ? requestedView : "error404"; // Изменено с "main" на "error404"
+  const mode = params.get("mode");
+
+  return { view, mode, edit, productId: null };
   }
 
   function buildUrl(view, extraParams = {}) {
@@ -1264,6 +1282,12 @@
     if (route.view === "favorites") await initFavoritesView();
     if (route.view === "cart") await initCartView();
     if (route.view === "admin") await initAdminView(route);
+
+    if (route.view === "error404") {
+      document.getElementById("back_to_main")?.addEventListener("click", () => {
+        setRoute("main");
+      });
+    }
   }
 
   window.addEventListener("scroll", () => {

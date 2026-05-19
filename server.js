@@ -183,6 +183,19 @@ app.get("/admin.html", (req, res) => {
   res.redirect(query ? `/admin?${query}` : "/admin");
 });
 
+// Этот обработчик должен стоять ниже всех остальных маршрутов 
+app.use((req, res, next) => {
+  if (req.method !== "GET") {
+    return next();
+  }
+
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ ok: false, error: "API endpoint not found" });
+  }
+
+  res.status(404).sendFile(`${__dirname}/main.html`);
+});
+
 app.get("/check_role", requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
