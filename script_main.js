@@ -3,6 +3,46 @@
   const allowedViews = new Set(["main", "catalog", "product", "login", "lk", "favorites", "cart", "admin", "error404"]);
   const catalogModule = window.FloraCatalog;
 
+  function showConfirmModal(message, onConfirm, onCancel = null) {
+    const modal = document.createElement("div");
+    modal.className = "confirm_modal_overlay";
+    modal.innerHTML = `
+      <div class="confirm_modal">
+        <p class="confirm_modal_text">${message}</p>
+        <div class="confirm_modal_actions">
+          <button class="confirm_modal_cancel">Отмена</button>
+          <button class="confirm_modal_confirm">Удалить</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cancelBtn = modal.querySelector(".confirm_modal_cancel");
+    const confirmBtn = modal.querySelector(".confirm_modal_confirm");
+
+    function cleanup() {
+      modal.remove();
+    }
+
+    cancelBtn.addEventListener("click", () => {
+      if (onCancel) onCancel();
+      cleanup();
+    });
+
+    confirmBtn.addEventListener("click", () => {
+      onConfirm();
+      cleanup();
+    });
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        if (onCancel) onCancel();
+        cleanup();
+      }
+    });
+  }
+
   const templates = {
     main: `
       <div id="page_content">
@@ -519,6 +559,22 @@
     const forgotForm = document.getElementById("forgot_form");
     const resetForm = document.getElementById("reset_form");
 
+    function showFormError(form, message) {
+      let feedback = form.querySelector(".form_feedback");
+      if (!feedback) {
+        feedback = document.createElement("p");
+        feedback.className = "form_feedback error";
+        form.appendChild(feedback);
+      }
+      feedback.textContent = message;
+      feedback.style.display = "block";
+    }
+
+    function clearFormError(form) {
+      const feedback = form.querySelector(".form_feedback");
+      if (feedback) feedback.style.display = "none";
+    }
+
     function showLogin() {
       loginForm.style.display = "block";
       regForm.style.display = "none";
@@ -578,6 +634,7 @@
 
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      clearFormError(loginForm);
 
       const body = {
         credential: loginForm.credential.value.trim(),
@@ -595,18 +652,19 @@
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          alert(data.error || "Ошибка входа");
+          showFormError(loginForm, data.error || "Ошибка входа");
           return;
         }
 
         setRoute("lk", {}, true);
       } catch (err) {
-        alert(`Ошибка: ${err.message}`);
+        showFormError(loginForm, `Ошибка: ${err.message}`);
       }
     });
 
     regForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      clearFormError(regForm);
 
       const body = {
         login: regForm.login.value.trim(),
@@ -626,18 +684,19 @@
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          alert(data.error || "Ошибка регистрации");
+          showFormError(regForm, data.error || "Ошибка регистрации");
           return;
         }
 
         setRoute("lk", {}, true);
       } catch (err) {
-        alert(`Ошибка: ${err.message}`);
+        showFormError(regForm, `Ошибка: ${err.message}`);
       }
     });
 
     forgotForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      clearFormError(forgotForm);
 
       const body = {
         email: forgotForm.email.value.trim()
@@ -654,20 +713,21 @@
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          alert(data.error || "Не удалось отправить код");
+          showFormError(forgotForm, data.error || "Не удалось отправить код");
           return;
         }
 
         resetForm.email.value = body.email;
-        alert(data.message || "Код отправлен");
-        setRoute("login", { mode: "reset" }, true);
+        showFormError(forgotForm, data.message || "Код отправлен");
+        setTimeout(() => setRoute("login", { mode: "reset" }, true), 1500);
       } catch (err) {
-        alert(`Ошибка: ${err.message}`);
+        showFormError(forgotForm, `Ошибка: ${err.message}`);
       }
     });
 
     resetForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      clearFormError(resetForm);
 
       const body = {
         email: resetForm.email.value.trim(),
@@ -686,14 +746,14 @@
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          alert(data.error || "Не удалось сменить пароль");
+          showFormError(resetForm, data.error || "Не удалось сменить пароль");
           return;
         }
 
-        alert(data.message || "Пароль изменен");
-        setRoute("login", { mode: "login" }, true);
+        showFormError(resetForm, data.message || "Пароль изменен");
+        setTimeout(() => setRoute("login", { mode: "login" }, true), 1500);
       } catch (err) {
-        alert(`Ошибка: ${err.message}`);
+        showFormError(resetForm, `Ошибка: ${err.message}`);
       }
     });
   }
@@ -731,12 +791,29 @@
       document.getElementById("lk_avatar").src = "https://avatars.mds.yandex.net/i?id=10a35c04830c25eb71e1dfdc207f3574_l-3613310-images-thumbs&n=13";
     }
 
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      const ok = confirm("Выйти из аккаунта?");
-      if (!ok) return;
+    function showEditError(message) {
+      let feedback = document.getElementById("edit_feedback");
+      if (!feedback) {
+        feedback = document.createElement("p");
+        feedback.id = "edit_feedback";
+        feedback.className = "form_feedback error";
+        const btn = document.getElementById("editProfileBtn");
+        btn.parentNode.insertBefore(feedback, btn.nextSibling);
+      }
+      feedback.textContent = message;
+      feedback.style.display = "block";
+    }
 
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-      setRoute("main", { edit: null }, true);
+    function clearEditError() {
+      const feedback = document.getElementById("edit_feedback");
+      if (feedback) feedback.style.display = "none";
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      showConfirmModal("Вы уверены, что хотите выйти из аккаунта?", async () => {
+        await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+        setRoute("main", { edit: null }, true);
+      });
     });
 
     document.getElementById("return").addEventListener("click", () => {
@@ -777,6 +854,7 @@
         return;
       }
 
+      clearEditError();
       const newUsername = document.getElementById("edit_username").value.trim();
       const newEmail = document.getElementById("edit_email").value.trim();
       const newPhone = document.getElementById("edit_phone").value.trim();
@@ -790,7 +868,7 @@
 
       const result = await res.json();
       if (!result.ok) {
-        alert(result.error);
+        showEditError(result.error);
         return;
       }
 
@@ -812,6 +890,7 @@
 
       btn.textContent = "Редактировать профиль";
       editMode = false;
+      clearEditError();
     });
   }
 
@@ -828,6 +907,14 @@
     document.getElementById("return").addEventListener("click", () => {
       setRoute("main");
     });
+
+    function showCartFeedback(message, isError = false) {
+      const feedback = document.createElement("p");
+      feedback.className = `form_feedback ${isError ? "error" : "success"}`;
+      feedback.textContent = message;
+      favoritesList.parentNode.insertBefore(feedback, favoritesList);
+      setTimeout(() => feedback.remove(), 3000);
+    }
 
     function renderFavorites(favorites) {
       favoritesCount.textContent = `${favorites.length} позиций`;
@@ -863,7 +950,7 @@
             await removeFavorite(item.product.id);
             await loadFavorites();
           } catch (error) {
-            alert(error.message);
+            showCartFeedback(error.message, true);
           }
         });
 
@@ -900,6 +987,14 @@
     document.getElementById("return").addEventListener("click", () => {
       setRoute("main");
     });
+
+    function showError(message) {
+      const error = document.createElement("p");
+      error.className = "form_feedback error";
+      error.textContent = message;
+      cartList.parentNode.insertBefore(error, cartList);
+      setTimeout(() => error.remove(), 3000);
+    }
 
     function renderCart(cart) {
       cartTotal.textContent = `Итого: ${cart.total} Br`;
@@ -944,7 +1039,7 @@
             await updateCartItem(item.product.id, Number(quantityInput.value));
             await loadCart();
           } catch (error) {
-            alert(error.message);
+            showError(error.message);
           }
         });
 
@@ -954,7 +1049,7 @@
             cartFeedback.textContent = `${result.purchased.title} оформлен(а).`;
             await loadCart();
           } catch (error) {
-            alert(error.message);
+            showError(error.message);
           }
         });
 
@@ -963,7 +1058,7 @@
             await removeCartItem(item.product.id);
             await loadCart();
           } catch (error) {
-            alert(error.message);
+            showError(error.message);
           }
         });
 
@@ -988,7 +1083,7 @@
         cartFeedback.textContent = `Оформлено товаров: ${result.purchased.length}.`;
         await loadCart();
       } catch (error) {
-        alert(error.message);
+        showError(error.message);
       }
     });
 
@@ -1017,6 +1112,40 @@
     const userPasswordInput = document.getElementById("user_password");
     let editId = route.edit;
     let selectedUserId = null;
+
+    function showProductError(message) {
+      let feedback = document.getElementById("product_feedback");
+      if (!feedback) {
+        feedback = document.createElement("p");
+        feedback.id = "product_feedback";
+        feedback.className = "form_feedback error";
+        btn.parentNode.insertBefore(feedback, btn.nextSibling);
+      }
+      feedback.textContent = message;
+      feedback.style.display = "block";
+    }
+
+    function showUserError(message) {
+      let feedback = document.getElementById("user_feedback");
+      if (!feedback) {
+        feedback = document.createElement("p");
+        feedback.id = "user_feedback";
+        feedback.className = "form_feedback error";
+        saveUserBtn.parentNode.insertBefore(feedback, saveUserBtn.nextSibling);
+      }
+      feedback.textContent = message;
+      feedback.style.display = "block";
+    }
+
+    function clearProductError() {
+      const feedback = document.getElementById("product_feedback");
+      if (feedback) feedback.style.display = "none";
+    }
+
+    function clearUserError() {
+      const feedback = document.getElementById("user_feedback");
+      if (feedback) feedback.style.display = "none";
+    }
 
     returnBtn.addEventListener("click", () => {
       setRoute("main", { edit: null });
@@ -1098,7 +1227,7 @@
     async function loadProductForEdit(id) {
       const res = await fetch(`/products/${id}`);
       if (!res.ok) {
-        alert("Товар не найден");
+        showProductError("Товар не найден");
         setRoute("admin", { edit: null }, true);
         return;
       }
@@ -1119,6 +1248,7 @@
     }
 
     btn.addEventListener("click", async () => {
+      clearProductError();
       const title = document.getElementById("title").value.trim();
       const price = document.getElementById("price").value.trim();
       const image = document.getElementById("image").value.trim();
@@ -1127,7 +1257,7 @@
       const flowerType = document.getElementById("flowerType").value.trim();
 
       if (!title || !price || !image) {
-        alert("Заполни все поля");
+        showProductError("Заполни все поля");
         return;
       }
 
@@ -1141,12 +1271,12 @@
 
         const result = await res.json();
         if (!result.ok) {
-          alert(`Ошибка: ${result.error}`);
+          showProductError(`Ошибка: ${result.error}`);
           return;
         }
 
-        alert("Товар обновлен");
-        setRoute("admin", { edit: editId }, true);
+        showProductError("Товар обновлен");
+        setTimeout(() => setRoute("admin", { edit: editId }, true), 1500);
         return;
       }
 
@@ -1159,33 +1289,32 @@
 
       const result = await res.json();
       if (!result.ok) {
-        alert(`Ошибка: ${result.error}`);
+        showProductError(`Ошибка: ${result.error}`);
         return;
       }
 
-      alert("Товар добавлен");
-      setRoute("admin", { edit: null }, true);
+      showProductError("Товар добавлен");
+      setTimeout(() => setRoute("admin", { edit: null }, true), 1500);
     });
 
     deleteBtn.addEventListener("click", async () => {
       if (!editId) return;
 
-      const ok = confirm("Удалить этот товар?");
-      if (!ok) return;
+      showConfirmModal("Удалить этот товар?", async () => {
+        const res = await fetch(`/products/${editId}`, {
+          method: "DELETE",
+          credentials: "include"
+        });
 
-      const res = await fetch(`/products/${editId}`, {
-        method: "DELETE",
-        credentials: "include"
+        const result = await res.json();
+        if (!result.ok) {
+          showProductError(`Ошибка: ${result.error}`);
+          return;
+        }
+
+        showProductError("Товар удален");
+        setTimeout(() => setRoute("admin", { edit: null }, true), 1500);
       });
-
-      const result = await res.json();
-      if (!result.ok) {
-        alert(`Ошибка: ${result.error}`);
-        return;
-      }
-
-      alert("Товар удален");
-      setRoute("admin", { edit: null }, true);
     });
 
     refreshUsersBtn.addEventListener("click", async () => {
@@ -1194,9 +1323,11 @@
 
     resetUserFormBtn.addEventListener("click", () => {
       resetUserForm();
+      clearUserError();
     });
 
     saveUserBtn.addEventListener("click", async () => {
+      clearUserError();
       const payload = {
         login: userLoginInput.value.trim(),
         email: userEmailInput.value.trim(),
@@ -1206,7 +1337,7 @@
       };
 
       if (!selectedUserId && !payload.password) {
-        alert("Для создания пользователя нужен пароль");
+        showUserError("Для создания пользователя нужен пароль");
         return;
       }
 
@@ -1222,11 +1353,11 @@
 
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        alert(result.error || "Не удалось сохранить пользователя");
+        showUserError(result.error || "Не удалось сохранить пользователя");
         return;
       }
 
-      alert(selectedUserId ? "Пользователь обновлен" : "Пользователь создан");
+      showUserError(selectedUserId ? "Пользователь обновлен" : "Пользователь создан");
       if (result.user) {
         fillUserForm(result.user);
       } else {
@@ -1238,23 +1369,22 @@
     deleteUserBtn.addEventListener("click", async () => {
       if (!selectedUserId) return;
 
-      const ok = confirm("Удалить выбранного пользователя?");
-      if (!ok) return;
+      showConfirmModal("Удалить выбранного пользователя?", async () => {
+        const res = await fetch(`/api/users/${selectedUserId}`, {
+          method: "DELETE",
+          credentials: "include"
+        });
 
-      const res = await fetch(`/api/users/${selectedUserId}`, {
-        method: "DELETE",
-        credentials: "include"
+        const result = await res.json();
+        if (!res.ok || !result.ok) {
+          showUserError(result.error || "Не удалось удалить пользователя");
+          return;
+        }
+
+        showUserError("Пользователь удален");
+        resetUserForm();
+        await loadUsers();
       });
-
-      const result = await res.json();
-      if (!res.ok || !result.ok) {
-        alert(result.error || "Не удалось удалить пользователя");
-        return;
-      }
-
-      alert("Пользователь удален");
-      resetUserForm();
-      await loadUsers();
     });
 
     resetUserForm();

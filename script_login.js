@@ -30,11 +30,37 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+function showError(message, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  let feedback = container.querySelector(".form_feedback");
+  if (!feedback) {
+    feedback = document.createElement("p");
+    feedback.className = "form_feedback error";
+    container.appendChild(feedback);
+  }
+
+  feedback.textContent = message;
+  feedback.style.display = "block";
+}
+
+function clearError(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const feedback = container.querySelector(".form_feedback");
+  if (feedback) {
+    feedback.style.display = "none";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login_form");
 
   loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault(); // не даём браузеру сам отправлять форму
+    e.preventDefault();
+    clearError("login_form");
 
     const body = {
       credential: loginForm.credential.value.trim(),
@@ -50,17 +76,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!res.ok) {
         const text = await res.text();
-        alert(text); // покажем сообщение от сервера
+        showError(text, "login_form");
         return;
       }
 
-     if (res.ok) {
-  const data = await res.json();
-  window.location.href = data.redirect;
-}
+      if (res.ok) {
+        const data = await res.json();
+        window.location.href = data.redirect;
+      }
 
     } catch (err) {
-      alert("Ошибка: " + err.message);
+      showError("Ошибка: " + err.message, "login_form");
     }
   });
 });
@@ -70,6 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   regForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    clearError("reg_form");
 
     const body = {
       login: regForm.login.value.trim(),
@@ -87,16 +114,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!res.ok) {
         const text = await res.text();
-        alert(text);
+        showError(text, "reg_form");
         return;
       }
 
       if (res.ok) {
-  const data = await res.json();
-  window.location.href = data.redirect;
-}
+        const data = await res.json();
+        window.location.href = data.redirect;
+      }
     } catch (err) {
-      alert("Ошибка: " + err.message);
+      showError("Ошибка: " + err.message, "reg_form");
     }
   });
 });
