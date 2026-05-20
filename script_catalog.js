@@ -171,6 +171,32 @@
     }
   }
 
+  async function updateCartItem(productId, quantity) {
+    const res = await fetch(`/api/account/cart/${productId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ quantity })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось обновить корзину");
+    }
+  }
+
+  async function removeFromCart(productId) {
+    const res = await fetch(`/api/account/cart/${productId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Не удалось удалить из корзины");
+    }
+  }
+
   async function addToFavorites(productId) {
     const res = await fetch("/api/account/favorites", {
       method: "POST",
@@ -586,7 +612,13 @@
           <p class="product_detail_text">${product.description || "Свежая композиция, аккуратная сборка и быстрая доставка. Мы бережно подготавливаем каждый букет, чтобы он приехал красивым, свежим и действительно порадовал получателя."}</p>
           <div class="product_detail_price">${product.price} Br</div>
           <div class="product_detail_actions">
-            ${isAuthorized ? `<button id="add_to_cart" class="modal_btn" type="button">${productState.cartQuantity > 0 ? `В корзине: ${productState.cartQuantity}` : "Добавить в корзину"}</button>` : '<button id="login_to_order" class="modal_btn" type="button">Войти</button>'}
+            ${isAuthorized ? (productState.cartQuantity > 0 ? `
+              <div class="cart_quantity_controls">
+                <button id="cart_decrease" class="quantity_btn" type="button">−</button>
+                <span id="cart_quantity_display" class="quantity_display">${productState.cartQuantity}</span>
+                <button id="cart_increase" class="quantity_btn" type="button">+</button>
+              </div>
+            ` : `<button id="add_to_cart" class="modal_btn" type="button">Добавить в корзину</button>`) : '<button id="login_to_order" class="modal_btn" type="button">Войти</button>'}
             ${isAuthorized ? `<button id="toggle_favorite" class="modal_btn secondary_action" type="button">${productState.isFavorite ? "Убрать из избранного" : "В избранное"}</button>` : ""}
             ${isAuthorized ? '<button id="buy_now" class="modal_btn" type="button">Купить сейчас</button>' : ""}
             ${isAdmin ? '<button id="product_edit" class="modal_btn" type="button">Редактировать</button>' : ""}
@@ -669,6 +701,65 @@
               actionFeedback.textContent = error.message;
             }
             addToCartBtn.disabled = false;
+          }
+        });
+      }
+
+      const decreaseBtn = document.getElementById("cart_decrease");
+      const increaseBtn = document.getElementById("cart_increase");
+      const quantityDisplay = document.getElementById("cart_quantity_display");
+
+      if (decreaseBtn) {
+        decreaseBtn.addEventListener("click", async () => {
+          decreaseBtn.disabled = true;
+          increaseBtn.disabled = true;
+          const currentQty = Number(quantityDisplay.textContent);
+          const newQty = currentQty - 1;
+
+          try {
+            if (newQty <= 0) {
+              await removeFromCart(product.id);
+              await renderProductView();
+            } else {
+              await updateCartItem(product.id, newQty);
+              quantityDisplay.textContent = newQty;
+              decreaseBtn.disabled = false;
+              increaseBtn.disabled = false;
+            }
+            if (actionFeedback) {
+              actionFeedback.textContent = "Корзина обновлена.";
+            }
+          } catch (error) {
+            if (actionFeedback) {
+              actionFeedback.textContent = error.message;
+            }
+            decreaseBtn.disabled = false;
+            increaseBtn.disabled = false;
+          }
+        });
+      }
+
+      if (increaseBtn) {
+        increaseBtn.addEventListener("click", async () => {
+          increaseBtn.disabled = true;
+          decreaseBtn.disabled = true;
+          const currentQty = Number(quantityDisplay.textContent);
+          const newQty = currentQty + 1;
+
+          try {
+            await updateCartItem(product.id, newQty);
+            quantityDisplay.textContent = newQty;
+            increaseBtn.disabled = false;
+            decreaseBtn.disabled = false;
+            if (actionFeedback) {
+              actionFeedback.textContent = "Корзина обновлена.";
+            }
+          } catch (error) {
+            if (actionFeedback) {
+              actionFeedback.textContent = error.message;
+            }
+            increaseBtn.disabled = false;
+            decreaseBtn.disabled = false;
           }
         });
       }
