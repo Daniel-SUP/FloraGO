@@ -3,6 +3,27 @@
   const allowedViews = new Set(["main", "catalog", "product", "login", "lk", "favorites", "cart", "admin", "error404"]);
   const catalogModule = window.FloraCatalog;
 
+  function showLoadingOverlay() {
+    let overlay = document.getElementById("loading_overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "loading_overlay";
+      overlay.className = "loading_overlay";
+      overlay.innerHTML = '<div class="loading_spinner"></div>';
+      document.body.appendChild(overlay);
+    }
+    overlay.style.display = "flex";
+  }
+
+  function hideLoadingOverlay() {
+    const overlay = document.getElementById("loading_overlay");
+    if (overlay) {
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 300);
+    }
+  }
+
   function showConfirmModal(message, onConfirm, onCancel = null) {
     const modal = document.createElement("div");
     modal.className = "confirm_modal_overlay";
@@ -406,6 +427,7 @@
   }
 
   function setRoute(view, extraParams = {}, replace = false) {
+    showLoadingOverlay();
     const nextUrl = buildUrl(view, extraParams);
 
     if (replace) {
@@ -1418,6 +1440,8 @@
         setRoute("main");
       });
     }
+
+    hideLoadingOverlay();
   }
 
   window.addEventListener("scroll", () => {
@@ -1428,6 +1452,7 @@
   });
 
   window.addEventListener("popstate", () => {
+    showLoadingOverlay();
     render();
   });
 
